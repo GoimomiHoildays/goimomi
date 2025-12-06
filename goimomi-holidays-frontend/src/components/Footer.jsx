@@ -1,11 +1,13 @@
 import React from "react";
 import { FaPhoneAlt, FaEnvelope } from "react-icons/fa";
 import { FaLocationDot } from "react-icons/fa6";
-import { FaFacebookF, FaInstagram, FaPlus } from "react-icons/fa";
-import { Link } from "react-router-dom";
+import { FaFacebookF, FaInstagram, FaYoutube  } from "react-icons/fa";
+import { FaPlus } from "react-icons/fa6"; // if you still want FaPlus
+import { Link, useNavigate } from "react-router-dom";
 
 
 const Footer = () => {
+  const navigate = useNavigate();
   return (
     <footer className="bg-[#0b1a3d] text-white pt-20 pb-10 px-6">
       {/* -------------------- TOP CTA -------------------- */}
@@ -14,9 +16,12 @@ const Footer = () => {
         <p className="mt-3 text-gray-300">
           Contact our expert team today for a free consultation and customized itinerary.
         </p>
-        <button className="mt-6 bg-[#e9b343] text-[#0b1a3d] font-semibold px-8 py-3 rounded-lg shadow-lg">
-          Get In Touch Now
-        </button>
+             <button
+      onClick={() => navigate("/contact")}
+      className="mt-6 bg-[#e9b343] text-[#0b1a3d] font-semibold px-8 py-3 rounded-lg shadow-lg"
+    >
+      Get In Touch Now
+    </button>
       </div>
 
       {/* -------------------- MAIN FOOTER CONTENT -------------------- */}
@@ -32,45 +37,81 @@ const Footer = () => {
           </p>
 
           {/* Social Icons */}
-          <div className="flex gap-4 mt-6">
-            <span className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-500/20">
-              <FaFacebookF />
-            </span>
-            <span className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-500/20">
-              <FaInstagram />
-            </span>
-            <span className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-500/20">
-              <FaPlus />
-            </span>
-          </div>
+                 <div className="flex gap-4 mt-6">
+
+          {/* Facebook */}
+               <a 
+                 href="https://facebook.com/goimomi" 
+                 target="_blank" 
+                 rel="noopener noreferrer"
+                 className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-500/20 hover:bg-gray-500/40 transition">
+                 <FaFacebookF />
+                </a>
+
+         {/* Instagram */}
+                <a 
+                  href="https://instagram.com/goimomi" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-500/20 hover:bg-gray-500/40 transition">
+                  <FaInstagram />
+                </a>
+
+         {/* YouTube */}
+                <a 
+                  href="https://youtube.com/@goimomi" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-500/20 hover:bg-gray-500/40 transition">
+                  <FaYoutube />
+                </a>
+
+         {/* Plus Icon (If you want to keep it, otherwise remove) */}
+                <span className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-500/20">
+                <FaPlus />
+                </span>
+
+        </div>
         </div>
 
-        {/* ------ Column 2: Quick Links ------ */}
-        <div>
-          <h3 className="text-xl font-bold mb-4">Quick Links</h3>
-          <ul className="space-y-2 text-gray-300">
-            <li>Flights</li>
-            <li>Hotels</li>
-            <li>Visa</li>
-            <li>Domestic</li>
-            <li>International</li>
-            <li>Hajj/Umrah</li>
-            <li>Customised Holidays</li>
-            <li>About Us</li>
-          </ul>
-        </div>
 
-        {/* ------ Column 3: Services ------ */}
-        <div>
-          <h3 className="text-xl font-bold mb-4">Our Services</h3>
-          <ul className="space-y-2 text-gray-300">
-            <li>Hotel Booking</li>
-            <li>Flight Tickets</li>
-            <li>Cab Booking</li>
-            <li>Cruise Bookings</li>
-            <li>Visa Services</li>
-          </ul>
-        </div>
+         {/* ------ Column 2: Quick Links ------ */}
+<div>
+  <h3 className="text-xl font-bold mb-4">Quick Links</h3>
+  <ul className="space-y-2 text-gray-300">
+    <li>
+  <a 
+    href="https://booking.goimomi.com/" 
+    rel="noopener noreferrer"
+    className="hover:text-white hover:underline"
+  >
+    Flights
+  </a>
+</li>
+
+    <li><Link to="/hotels">Hotels</Link></li>
+    <li><Link to="/visa">Visa</Link></li>
+    <li><Link to="/domestic">Domestic</Link></li>
+    <li><Link to="/international">International</Link></li>
+    <li><Link to="/hajj-umrah">Hajj/Umrah</Link></li>
+    <li><Link to="/customised-holidays">Customised Holidays</Link></li>
+    <li><Link to="/about">About Us</Link></li>
+    <li><Link to="/contact">Contact Us</Link></li>
+  </ul>
+</div>
+
+{/* ------ Column 3: Services ------ */}
+<div>
+  <h3 className="text-xl font-bold mb-4">Our Services</h3>
+  <ul className="space-y-2 text-gray-300">
+    <li><Link to="/hotel-booking">Hotel Booking</Link></li>
+    <li> <a href="https://booking.goimomi.com/" rel="noopener noreferrer"className="hover:text-white hover:underline">Flights Booking</a></li>
+    <li><Link to="/cab-booking">Cab Booking</Link></li>
+    <li><Link to="/cruise-bookings">Cruise Bookings</Link></li>
+    <li><Link to="/visa-services">Visa Services</Link></li>
+  </ul>
+</div>
+
 
         {/* ------ Column 4: Contact Info ------ */}
         <div>
