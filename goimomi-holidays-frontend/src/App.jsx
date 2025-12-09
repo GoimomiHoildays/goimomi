@@ -12,6 +12,11 @@ import Contact from './pages/Contact.jsx'
 import ContactSuccess from './pages/ContactSuccess.jsx'
 import CustomizedHolidays from './pages/CustomizedHolidays.jsx'
 import CustomizedUmrah from './pages/CustomizedUmrah.jsx'
+import PlanTrip from './pages/form.jsx'
+import Cab from './pages/cab.jsx'
+import Cruise from './pages/curise.jsx'
+import Visa from './pages/visa.jsx'
+import Hotel from './pages/hotel.jsx'
 import PrivacyPolicy from './pages/PrivacyPolicy.jsx'
 import TermsConditions from './pages/TermsConditions.jsx'
 import CancellationPolicy from './pages/CancellationPolicy.jsx'
@@ -33,6 +38,11 @@ const App = () => {
           <Route path="/contact/success" element={<ContactSuccess />} />
           <Route path="/customized-holidays" element={<CustomizedHolidays />} />
           <Route path="/customized-umrah" element={<CustomizedUmrah />} />
+          <Route path="/form" element={<PlanTrip />} />
+          <Route path="/cab" element={<Cab />} />
+          <Route path="/cruise" element={<Cruise />} />
+          <Route path="/visa" element={<Visa />} />
+          <Route path="/hotel" element={<Hotel />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-and-conditions" element={<TermsConditions />} />
           <Route path="/cancellation-policy" element={<CancellationPolicy />} />

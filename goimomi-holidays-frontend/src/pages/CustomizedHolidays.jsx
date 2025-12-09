@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   FaCalendarAlt,
   FaHotel,
@@ -10,6 +10,7 @@ import {
   FaCheckCircle,
   FaPhoneAlt,
 } from "react-icons/fa";
+import FormModal from "../components/FormModal.jsx";
 
 // 🔹 Update these image paths based on your actual assets folder
 import heroImg from "../assets/cusholidays.png";
@@ -18,6 +19,7 @@ import mountainImg from "../assets/mountain.png";
 import cultureImg from "../assets/temples.png";
 
 const CustomizedHolidays = () => {
+  const [isFormOpen, setIsFormOpen] = useState(false);
   return (
     <div className="w-full overflow-hidden text-gray-800">
 
@@ -38,7 +40,9 @@ const CustomizedHolidays = () => {
             travel packages tailored to your dreams, budget, and preferences.
           </p>
 
-          <button className="mt-8 bg-yellow-600 hover:bg-yellow-700 text-white px-8 py-3 rounded-md font-semibold shadow-lg">
+          <button 
+            onClick={() => setIsFormOpen(true)}
+            className="mt-8 bg-yellow-600 hover:bg-yellow-700 text-white px-8 py-3 rounded-md font-semibold shadow-lg">
             📸 Plan Your Dream Holiday
           </button>
         </div>
@@ -247,7 +251,9 @@ const CustomizedHolidays = () => {
         </div>
 
         <div className="flex justify-center gap-6 mt-12">
-          <button className="bg-yellow-600 hover:bg-yellow-700 px-8 py-3 text-white rounded-md font-semibold">
+          <button 
+            onClick={() => setIsFormOpen(true)}
+            className="bg-yellow-600 hover:bg-yellow-700 px-8 py-3 text-white rounded-md font-semibold">
             📸 Start Planning Your Holiday
           </button>
           <button className="border border-white px-8 py-3 rounded-md hover:bg-white hover:text-blue-900 transition">
@@ -255,6 +261,12 @@ const CustomizedHolidays = () => {
           </button>
         </div>
       </section>
+
+      <FormModal 
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        packageType="Customized Holiday"
+      />
 
     </div>
   );
@@ -309,7 +321,9 @@ const HolidayCard = ({ img, title, price, features }) => (
         ))}
       </div>
 
-      <button className="mt-6 w-full bg-blue-900 text-white py-3 rounded-md hover:bg-blue-800 font-semibold 
+      <button 
+        onClick={() => setIsFormOpen(true)}
+        className="mt-6 w-full bg-blue-900 text-white py-3 rounded-md hover:bg-blue-800 font-semibold 
       ">
         📸 Customize This Holiday
       </button>
