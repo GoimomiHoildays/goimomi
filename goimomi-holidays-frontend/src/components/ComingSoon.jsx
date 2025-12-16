@@ -22,13 +22,13 @@ const ComingSoon = ({ title, description }) => {
         <div className="mb-8 flex justify-center">
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full opacity-20 blur-2xl"></div>
-            <FaCalendarAlt className="text-6xl text-blue-600 relative z-10" />
+            <FaCalendarAlt className="text-6xl text-[#14532d] relative z-10" />
           </div>
         </div>
 
         {/* Main Content */}
         <h1 className="text-5xl md:text-6xl font-bold text-gray-800 mb-4">
-          Coming <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Soon</span>
+          Coming <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#14532d] to-purple-600">Soon</span>
         </h1>
 
         <p className="text-xl md:text-2xl text-gray-600 mb-4">
@@ -57,7 +57,7 @@ const ComingSoon = ({ title, description }) => {
             </div>
             <button
               type="submit"
-              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:shadow-lg transition transform hover:scale-105"
+              className="bg-gradient-to-r from-[#14532d] to-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:shadow-lg transition transform hover:scale-105"
             >
               Notify Me
             </button>
@@ -94,7 +94,7 @@ const ComingSoon = ({ title, description }) => {
         {/* Call to Action */}
         <p className="text-gray-600">
           In the meantime, explore our other services or{" "}
-          <a href="/" className="text-blue-600 font-semibold hover:underline">
+          <a href="/" className="text-[#14532d] font-semibold hover:underline">
             return to home
           </a>
         </p>

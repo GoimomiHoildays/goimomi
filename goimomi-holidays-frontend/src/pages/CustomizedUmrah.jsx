@@ -42,16 +42,7 @@ const CustomizedUmrah = () => {
                 setIsFormOpen(true);
               }}
               className="bg-yellow-500 text-black font-semibold px-8 py-3 rounded-lg shadow-lg hover:bg-yellow-400 transition">
-              Book Standard Package
-            </button>
-
-            <button 
-              onClick={() => {
-                setSelectedPackage("VIP Umrah Package");
-                setIsFormOpen(true);
-              }}
-              className="bg-white/90 text-green-800 font-semibold px-8 py-3 rounded-lg shadow-lg hover:bg-white transition">
-              Book VIP Package
+              Customize My Umrah
             </button>
           </div>
         </div>
@@ -293,16 +284,7 @@ const CustomizedUmrah = () => {
                 setIsFormOpen(true);
               }}
               className="bg-yellow-500 text-black px-8 py-3 rounded-lg font-semibold hover:bg-yellow-400">
-              Book Economy Package
-            </button>
-
-            <button 
-              onClick={() => {
-                setSelectedPackage("VIP Umrah Package");
-                setIsFormOpen(true);
-              }}
-              className="bg-white/90 text-green-800 px-8 py-3 rounded-lg font-semibold hover:bg-white">
-              Book VIP Package
+                Customize My Umrah
             </button>
           </div>
         </div>

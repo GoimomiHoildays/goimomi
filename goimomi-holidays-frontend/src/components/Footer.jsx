@@ -9,7 +9,7 @@ import { Link, useNavigate } from "react-router-dom";
 const Footer = () => {
   const navigate = useNavigate();
   return (
-    <footer className="bg-[#0b1a3d] text-white pt-20 pb-10 px-6">
+    <footer className="bg-[#14532d] text-white pt-20 pb-10 px-6">
       {/* -------------------- TOP CTA -------------------- */}
       <div className="text-center mb-16">
         <h2 className="text-4xl font-bold">Ready to Plan Your Dream Getaway?</h2>
@@ -18,7 +18,7 @@ const Footer = () => {
         </p>
              <button
       onClick={() => navigate("/contact")}
-      className="mt-6 bg-[#e9b343] text-[#0b1a3d] font-semibold px-8 py-3 rounded-lg shadow-lg"
+      className="mt-6 bg-[#e9b343] text-[#14532d] font-semibold px-8 py-3 rounded-lg shadow-lg"
     >
       Get In Touch Now
     </button>
@@ -65,11 +65,6 @@ const Footer = () => {
                   className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-500/20 hover:bg-gray-500/40 transition">
                   <FaYoutube />
                 </a>
-
-         {/* Plus Icon (If you want to keep it, otherwise remove) */}
-                <span className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-500/20">
-                <FaPlus />
-                </span>
 
         </div>
         </div>
@@ -120,8 +115,19 @@ const Footer = () => {
           <div className="flex items-start gap-3 text-gray-300 mb-4">
             <FaLocationDot className="text-[#e9b343] text-xl" />
             <p>
-              5, Crescent Paark, Ground Floor, Sulaiman Hazrath St,
-              Opp. Jamal Mohamed Masjid, Tiruchirappalli, Tamil Nadu 620002, India
+              Tiruchirappalli
+            </p>
+          </div>
+          <div className="flex items-start gap-3 text-gray-300 mb-4">
+            <FaLocationDot className="text-[#e9b343] text-xl" />
+            <p>
+              Hyderabad
+            </p>
+          </div>
+          <div className="flex items-start gap-3 text-gray-300 mb-4">
+            <FaLocationDot className="text-[#e9b343] text-xl" />
+            <p>
+              Dubai
             </p>
           </div>
 

@@ -10,22 +10,25 @@ import {
   FaCheckCircle,
   FaPhoneAlt,
 } from "react-icons/fa";
-import FormModal from "../components/FormModal.jsx";
+import HolidaysFormModal from "../pages/Holidaysform.jsx";
+import { useNavigate } from "react-router-dom";
 
-// 🔹 Update these image paths based on your actual assets folder
+// Images
 import heroImg from "../assets/cusholidays.png";
 import beachImg from "../assets/beach & island.png";
 import mountainImg from "../assets/mountain.png";
 import cultureImg from "../assets/temples.png";
+import cardImg from "../assets/TravelGallery/card4.png";
 
 const CustomizedHolidays = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedPackage, setSelectedPackage] = useState("Customized Holiday");
+  const navigate = useNavigate();
+
   return (
     <div className="w-full overflow-hidden text-gray-800">
 
-      {/* ======================================
-          HERO SECTION
-      ======================================= */}
+      {/* HERO */}
       <section
         className="relative h-[75vh] bg-cover bg-center flex flex-col items-center justify-center text-white"
         style={{ backgroundImage: `url(${heroImg})` }}
@@ -40,19 +43,18 @@ const CustomizedHolidays = () => {
             travel packages tailored to your dreams, budget, and preferences.
           </p>
 
-          <button 
-            onClick={() => setIsFormOpen(true)}
-            className="mt-8 bg-yellow-600 hover:bg-yellow-700 text-white px-8 py-3 rounded-md font-semibold shadow-lg">
+          <button
+            onClick={() => { setSelectedPackage("Customized Holiday"); setIsFormOpen(true); }}
+            className="mt-8 bg-yellow-600 hover:bg-yellow-700 text-white px-8 py-3 rounded-md font-semibold shadow-lg"
+          >
             📸 Plan Your Dream Holiday
           </button>
         </div>
       </section>
 
-      {/* ======================================
-          CUSTOMIZATION OPTIONS
-      ======================================= */}
+      {/* Customization options */}
       <section className="py-20 bg-white">
-        <h2 className="text-center text-4xl font-bold text-blue-900">
+        <h2 className="text-center text-4xl font-bold text-[#14532d]">
           Customize Every Aspect of Your Holiday
         </h2>
         <p className="text-center mt-3 text-gray-600">
@@ -60,8 +62,6 @@ const CustomizedHolidays = () => {
         </p>
 
         <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto mt-14 px-6">
-
-          {/* CARD 1 */}
           <OptionCard
             icon={<FaCalendarAlt size={35} />}
             title="Flexible Dates"
@@ -74,7 +74,6 @@ const CustomizedHolidays = () => {
             ]}
           />
 
-          {/* CARD 2 */}
           <OptionCard
             icon={<FaHotel size={35} />}
             title="Accommodation Choice"
@@ -87,7 +86,6 @@ const CustomizedHolidays = () => {
             ]}
           />
 
-          {/* CARD 3 */}
           <OptionCard
             icon={<FaUsers size={35} />}
             title="Group Size"
@@ -100,7 +98,6 @@ const CustomizedHolidays = () => {
             ]}
           />
 
-          {/* CARD 4 */}
           <OptionCard
             icon={<FaPlane size={35} />}
             title="Travel Preferences"
@@ -115,19 +112,16 @@ const CustomizedHolidays = () => {
         </div>
       </section>
 
-      {/* ======================================
-          WHAT'S INCLUDED
-      ======================================= */}
+      {/* What's included */}
       <section className="py-20 bg-gray-50">
-        <h2 className="text-center text-4xl font-bold text-blue-900">
-          What’s Included in Your Custom Holiday
+        <h2 className="text-center text-4xl font-bold text-[#14532d]">
+          What's Included in Your Custom Holiday
         </h2>
         <p className="text-center mt-3 text-gray-600">
           Premium features and services for a comfortable and memorable travel experience
         </p>
 
         <div className="grid md:grid-cols-3 gap-10 max-w-6xl mx-auto mt-14 px-6">
-
           <IncludeCard
             icon={<FaStar size={35} className="text-yellow-600" />}
             title="Personalized Itinerary"
@@ -166,11 +160,9 @@ const CustomizedHolidays = () => {
         </div>
       </section>
 
-      {/* ======================================
-          HOLIDAY TYPE CARDS
-      ======================================= */}
+      {/* Holiday type cards */}
       <section className="py-20 bg-white">
-        <h2 className="text-center text-4xl font-bold text-blue-900">
+        <h2 className="text-center text-4xl font-bold text-[#14532d]">
           Choose Your Custom Holiday Type
         </h2>
         <p className="text-center mt-3 text-gray-600">
@@ -182,6 +174,8 @@ const CustomizedHolidays = () => {
             img={beachImg}
             title="Beach & Island Getaway"
             price="₹25,000"
+            packageType="Beach & Island Getaway"
+            onOpenForm={(type) => { setSelectedPackage(type); setIsFormOpen(true); }}
             features={[
               "Beachfront accommodation",
               "Water sports activities",
@@ -194,6 +188,8 @@ const CustomizedHolidays = () => {
             img={mountainImg}
             title="Mountain Adventure"
             price="₹35,000"
+            packageType="Mountain Adventure"
+            onOpenForm={(type) => { setSelectedPackage(type); setIsFormOpen(true); }}
             features={[
               "Trekking & hiking",
               "Mountain lodges",
@@ -206,6 +202,8 @@ const CustomizedHolidays = () => {
             img={cultureImg}
             title="Cultural Heritage Tour"
             price="₹30,000"
+            packageType="Cultural Heritage Tour"
+            onOpenForm={(type) => { setSelectedPackage(type); setIsFormOpen(true); }}
             features={[
               "Historical sites",
               "Cultural experiences",
@@ -216,74 +214,77 @@ const CustomizedHolidays = () => {
         </div>
       </section>
 
-      {/* ======================================
-          CONTACT SECTION
-      ======================================= */}
-      <section className="py-20 bg-blue-900 text-white">
-        <h2 className="text-center text-4xl font-bold">Plan Your Dream Holiday Today</h2>
+      {/* Contact / CTA */}
+      <section
+        className="py-20 bg-[#14532d] text-white bg-cover bg-center"
+        style={{ backgroundImage: `url(${cardImg})` }}
+      >
+        <div className="py-20 text-center max-w-4xl mx-auto">
+          <h2 className="text-center text-4xl font-bold">Plan Your Dream Holiday Today</h2>
 
-        <p className="text-center mt-3 text-gray-200 max-w-3xl mx-auto">
-          Our travel experts are here to guide you with personalized travel solutions.
-        </p>
+          <p className="text-center mt-3 text-gray-200 max-w-3xl mx-auto">
+            Our travel experts are here to guide you with personalized travel solutions.
+          </p>
 
-        <div className="grid md:grid-cols-3 gap-10 max-w-5xl mx-auto mt-16 px-6">
+          <div className="grid md:grid-cols-3 gap-10 max-w-5xl mx-auto mt-16 px-6">
+            <ContactCard
+              icon={<FaPhoneAlt size={35} className="text-yellow-500" />}
+              title="Phone Support"
+              subtitle="24/7 Customer Service"
+              info="+91 638 222 0393"
+            />
 
-          <ContactCard
-            icon={<FaPhoneAlt size={35} className="text-yellow-500" />}
-            title="Phone Support"
-            subtitle="24/7 Customer Service"
-            info="+91 638 222 0393"
-          />
+            <ContactCard
+              icon={<FaStar size={35} className="text-yellow-500" />}
+              title="Email Support"
+              subtitle="Quick Response"
+              info="hello@goimomi.com"
+            />
 
-          <ContactCard
-            icon={<FaStar size={35} className="text-yellow-500" />}
-            title="Email Support"
-            subtitle="Quick Response"
-            info="hello@goimomi.com"
-          />
+            <ContactCard
+              icon={<FaUsers size={35} className="text-yellow-500" />}
+              title="WhatsApp Chat"
+              subtitle="Instant Messaging"
+              info="Chat with Us"
+            />
+          </div>
 
-          <ContactCard
-            icon={<FaUsers size={35} className="text-yellow-500" />}
-            title="WhatsApp Chat"
-            subtitle="Instant Messaging"
-            info="Chat with Us"
-          />
-        </div>
-
-        <div className="flex justify-center gap-6 mt-12">
-          <button 
-            onClick={() => setIsFormOpen(true)}
-            className="bg-yellow-600 hover:bg-yellow-700 px-8 py-3 text-white rounded-md font-semibold">
-            📸 Start Planning Your Holiday
-          </button>
-          <button className="border border-white px-8 py-3 rounded-md hover:bg-white hover:text-blue-900 transition">
-            📞 Call Now
-          </button>
+          <div className="flex justify-center gap-6 mt-12">
+            <button
+              onClick={() => { setSelectedPackage('Customized Holiday'); setIsFormOpen(true); }}
+              className="bg-yellow-600 hover:bg-yellow-700 px-8 py-3 text-white rounded-md font-semibold"
+            >
+              📸 Start Planning Your Holiday
+            </button>
+            <button
+              onClick={() => navigate('/Contact')}
+              className="bg-yellow-600 hover:bg-yellow-700 px-8 py-3 text-white rounded-md font-semibold"
+            >
+              📞 Call Now
+            </button>
+          </div>
         </div>
       </section>
 
-      <FormModal 
+      <HolidaysFormModal
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
-        packageType="Customized Holiday"
+        packageType={selectedPackage}
       />
-
     </div>
   );
 };
 
 export default CustomizedHolidays;
 
-//
-// ====================================================
-//              SUB COMPONENTS
-// ====================================================
-//
+// -------------------------
+// Subcomponents
+// -------------------------
 
 const OptionCard = ({ icon, title, items }) => (
   <div className="bg-gray-50 p-8 rounded-xl shadow-sm border">
-    <div className="text-blue-900 mb-4">{icon}</div>
-    <h3 className="text-xl font-semibold text-blue-900 mb-4">{title}</h3>
+    <div className="text-[#14532d] mb-4">{icon}</div>
+    <h3 className="text-xl font-semibold text-[#14532d] mb-4">{title}</h3>
 
     <ul className="space-y-2">
       {items.map((item, i) => (
@@ -298,20 +299,18 @@ const OptionCard = ({ icon, title, items }) => (
 const IncludeCard = ({ icon, title, text }) => (
   <div className="bg-white p-8 rounded-xl shadow-md text-center">
     <div className="mb-4 flex justify-center">{icon}</div>
-    <h3 className="text-xl font-semibold text-blue-900">{title}</h3>
+    <h3 className="text-xl font-semibold text-[#14532d]">{title}</h3>
     <p className="text-gray-600 mt-2">{text}</p>
   </div>
 );
 
-const HolidayCard = ({ img, title, price, features }) => (
+const HolidayCard = ({ img, title, price, features, onOpenForm, packageType }) => (
   <div className="bg-white rounded-xl shadow-md overflow-hidden">
     <img src={img} alt={title} className="w-full h-56 object-cover" />
 
     <div className="p-6">
-      <h3 className="text-2xl font-semibold text-blue-900">{title}</h3>
-      <p className="mt-4 text-xl font-semibold text-blue-900">
-        Starting from {price}
-      </p>
+      <h3 className="text-2xl font-semibold text-[#14532d]">{title}</h3>
+      <p className="mt-4 text-xl font-semibold text-[#14532d]">Starting from {price}</p>
 
       <div className="mt-4 space-y-2">
         {features.map((f, idx) => (
@@ -321,10 +320,10 @@ const HolidayCard = ({ img, title, price, features }) => (
         ))}
       </div>
 
-      <button 
-        onClick={() => setIsFormOpen(true)}
-        className="mt-6 w-full bg-blue-900 text-white py-3 rounded-md hover:bg-blue-800 font-semibold 
-      ">
+      <button
+        onClick={() => onOpenForm(packageType)}
+        className="mt-6 w-full bg-[#14532d] text-white py-3 rounded-md hover:bg-[#0d2f1f] font-semibold"
+      >
         📸 Customize This Holiday
       </button>
     </div>
@@ -332,7 +331,7 @@ const HolidayCard = ({ img, title, price, features }) => (
 );
 
 const ContactCard = ({ icon, title, subtitle, info }) => (
-  <div className="bg-blue-900 p-8 rounded-xl text-center border border-indigo-50">
+  <div className="bg-[#14532d] p-8 rounded-xl text-center border border-indigo-50">
     <div className="mb-4 flex justify-center">{icon}</div>
     <h3 className="text-xl font-semibold text-white">{title}</h3>
     <p className="text-gray-300 mt-1">{subtitle}</p>
