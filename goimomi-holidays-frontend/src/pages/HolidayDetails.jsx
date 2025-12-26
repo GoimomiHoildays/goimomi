@@ -1,91 +1,35 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-
-// sample image imports
-import bali1 from "../assets/TravelGallery/turkey.png";
-import bali2 from "../assets/TravelGallery/usa.png";
-import bali3 from "../assets/TravelGallery/card4.png";
 
 const HolidayDetails = () => {
   const { id } = useParams();
   const [openDay, setOpenDay] = useState(null);
+  const [pkg, setPkg] = useState(null);
+
+  const getImageUrl = (url) => {
+    if (!url) return "";
+    if (url.startsWith("http")) return url;
+    return `http://127.0.0.1:8000${url}`;
+  };
 
   const toggleDay = (index) => {
     setOpenDay(openDay === index ? null : index);
   };
 
-  const packages = [
-    {
-      id: 1,
-      title: "Amazing Bhutan",
-      days: 8,
-      nights: 7,
-      price: 35999,
-      oldPrice: 40000,
-      headerImage: bali1,
-      itinerary: [
-        { day: "Day 01 - Arrival", description: "Arrival in Bhutan", image: bali2 },
-        { day: "Day 02 - Thimphu Tour", description: "Thimphu Sightseeing", image: bali3 },
-        { day: "Day 03 - Punakha", description: "Punakha Valley", image: bali1 },
-        { day: "Day 04 - Paro Tour", description: "Paro City Tour", image: bali2 },
-        { day: "Day 05 - Tiger's Nest", description: "Tiger's Nest Hike", image: bali3 },
-        { day: "Day 06 - Chele La Pass", description: "Scenic mountain pass", image: bali1 },
-        { day: "Day 07 - Leisure", description: "Free day to explore", image: bali2 },
-        { day: "Day 08 - Departure", description: "Return journey" }
-      ],
-      inclusions: ["Accommodation", "Breakfast", "Transfers", "Sightseeing", "Round-trip Flight"],
-      exclusions: ["Lunch & Dinner", "Personal Expenses"]
-    },
+  useEffect(() => {
+    fetch(`http://127.0.0.1:8000/api/packages/${id}/`)
+      .then((res) => res.json())
+      .then((data) => setPkg(data))
+      .catch((err) => console.error("Error fetching package details:", err));
+  }, [id]);
 
-    {
-      id: 2,
-      title: "Vietnam Adventure Quest",
-      days: 7,
-      nights: 6,
-      price: 46973,
-      oldPrice: 52000,
-      headerImage: bali2,
-      itinerary: [
-        { day: "Day 01 - Arrival", description: "Arrival in Ho Chi Minh", image: bali1 },
-        { day: "Day 02 - Cu Chi", description: "Cu Chi Tunnels", image: bali3 },
-        { day: "Day 03 - Mekong", description: "Mekong Delta", image: bali2 },
-        { day: "Day 04 - Da Nang", description: "Fly to Da Nang", image: bali1 },
-        { day: "Day 05 - Hoi An", description: "Hoi An Ancient Town", image: bali3 },
-        { day: "Day 06 - Ba Na Hills", description: "Golden Bridge tour", image: bali2 },
-        { day: "Day 07 - Departure", description: "Return journey" }
-      ],
-      inclusions: ["Hotels", "Domestic Flights", "Tours", "Breakfast"],
-      exclusions: ["International Flights", "Visa", "Tips"]
-    },
-
-    {
-      id: 3,
-      title: "Dubai Extravaganza",
-      days: 6,
-      nights: 5,
-      price: 52161,
-      oldPrice: 60000,
-      headerImage: bali3,
-      itinerary: [
-        { day: "Day 01 - Arrival", description: "Arrival in Dubai", image: bali1 },
-        { day: "Day 02 - City Tour", description: "City Tour & Burj Khalifa", image: bali2 },
-        { day: "Day 03 - Desert Safari", description: "Evening desert safari", image: bali3 },
-        { day: "Day 04 - Abu Dhabi", description: "Abu Dhabi Grand Mosque tour", image: bali1 },
-        { day: "Day 05 - Miracle Garden", description: "Visit Miracle Garden", image: bali2 },
-        { day: "Day 06 - Departure", description: "Return journey" }
-      ],
-      inclusions: ["Hotel Stay", "Daily Breakfast", "Visa", "Tours", "Round-trip Flight"],
-      exclusions: ["Tourism Dirham Fee", "Personal Expenses"]
-    }
-  ];
-
-  const pkg = packages.find((p) => p.id === Number(id)) || packages[0];
+  if (!pkg) return <div className="text-center mt-20">Loading...</div>;
 
   return (
     <div className="w-full bg-gray-50 pb-20">
 
       {/* HEADER IMAGE */}
-      <img src={pkg.headerImage} className="w-full h-[430px] object-cover" />
+      <img src={getImageUrl(pkg.header_image)} className="w-full h-[430px] object-cover" />
 
       <div className="w-[85%] mx-auto mt-10 flex gap-10">
 
@@ -93,10 +37,19 @@ const HolidayDetails = () => {
         <div className="w-[65%]">
           <h1 className="text-4xl font-bold mb-6">{pkg.title}</h1>
 
+
+          {pkg.description && (
+            <ul className="text-gray-700 text-base mb-6 space-y-2 list-disc list-inside">
+              {pkg.description.split('\n').filter(line => line.trim()).map((point, index) => (
+                <li key={index} className="leading-relaxed">{point.trim()}</li>
+              ))}
+            </ul>
+          )}
+
           <h2 className="text-2xl font-semibold mb-4">Itinerary</h2>
 
           {/* =================== DROPDOWN ITINERARY =================== */}
-          {pkg.itinerary.map((item, index) => (
+          {pkg.itinerary?.map((item, index) => (
             <div key={index} className="mb-4">
 
               {/* DAY HEADER BUTTON */}
@@ -104,7 +57,7 @@ const HolidayDetails = () => {
                 onClick={() => toggleDay(index)}
                 className="w-full flex justify-between items-center bg-gray-100 px-6 py-4 rounded-xl shadow-md text-left hover:bg-gray-200 transition"
               >
-                <span className="text-lg font-semibold">{item.day}</span>
+                <span className="text-lg font-semibold">{`Day ${item.day_number} - ${item.title}`}</span>
                 <span className="text-xl">{openDay === index ? "▲" : "▼"}</span>
               </button>
 
@@ -114,7 +67,7 @@ const HolidayDetails = () => {
 
                   {item.image && (
                     <img
-                      src={item.image}
+                      src={getImageUrl(item.image)}
                       className="w-full h-52 object-cover rounded-xl mb-4"
                     />
                   )}
@@ -129,15 +82,15 @@ const HolidayDetails = () => {
           <div className="mt-10 flex gap-10">
             <div>
               <h3 className="text-xl font-bold mb-3">Inclusions</h3>
-              {pkg.inclusions.map((inc, i) => (
-                <p key={i} className="text-gray-700 mb-1">• {inc}</p>
+              {pkg.inclusions?.map((inc, i) => (
+                <p key={i} className="text-gray-700 mb-1">• {inc.text}</p>
               ))}
             </div>
 
             <div>
               <h3 className="text-xl font-bold mb-3">Exclusions</h3>
-              {pkg.exclusions.map((exc, i) => (
-                <p key={i} className="text-gray-700 mb-1">• {exc}</p>
+              {pkg.exclusions?.map((exc, i) => (
+                <p key={i} className="text-gray-700 mb-1">• {exc.text}</p>
               ))}
             </div>
           </div>
@@ -145,9 +98,13 @@ const HolidayDetails = () => {
 
         {/* RIGHT PRICE CARD */}
         <div className="w-[35%] sticky top-10 bg-white shadow-xl rounded-2xl p-6 h-fit">
-          <p className="line-through text-gray-400 text-lg">₹ {pkg.oldPrice}</p>
-          <p className="text-3xl font-bold text-[#14532d]">₹ {pkg.price}</p>
-          <p className="text-gray-500 mt-2">{pkg.nights}N / {pkg.days}D</p>
+          {pkg.price && (
+            <p className="line-through text-gray-400 text-lg">
+              ₹ {pkg.price.toLocaleString()}
+            </p>
+          )}
+          <p className="text-3xl font-bold text-[#14532d]">₹ {(pkg.Offer_price || 0).toLocaleString()}</p>
+          <p className="text-gray-500 mt-2">{pkg.nights}Nights / {pkg.days}Day</p>
 
           <button className="w-full bg-[#14532d] text-white py-3 rounded-xl mt-6 text-lg">
             Enquire Now

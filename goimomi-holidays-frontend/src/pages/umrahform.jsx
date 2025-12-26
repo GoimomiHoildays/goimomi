@@ -303,6 +303,16 @@ const UmrahFormOnly = ({ isOpen, onClose, packageType }) => {
                       <option value="">Select City</option>
                       <option value="Makkah">Makkah</option>
                       <option value="Madinah">Madinah</option>
+                      <option value="Sharjah">Sharjah</option>
+                      <option value="Ajman">Ajman</option>
+                      <option value="Umm Al Quwain">Umm Al Quwain</option>
+                      <option value="Abu Dhabi">Abu Dhabi</option>
+                      <option value="Fujairah">Fujairah</option>
+                      <option value="Dubai">Dubai</option>
+                      <option value="Ras Al Khaimah">Ras Al Khaimah</option>
+                      <option value="Al Ain">Al Ain</option>
+                      
+
                       {/* Add more options as needed */}
                     </select>
 

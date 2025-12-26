@@ -72,6 +72,50 @@ const HolidaysFormModal = ({ isOpen, onClose, packageType }) => {
 
   const [budget, setBudget] = useState("");
 
+  // Data from Backend
+  const [destinationsList, setDestinationsList] = useState([]);
+  const [startingCitiesList, setStartingCitiesList] = useState([]);
+
+  // Dropdown States
+  const [activeCityIndex, setActiveCityIndex] = useState(null); // Which row in 'cities' is open
+  const [citySearch, setCitySearch] = useState("");
+  const [isStartCityOpen, setIsStartCityOpen] = useState(false);
+  const [startCitySearch, setStartCitySearch] = useState("");
+
+  // Fetch Data
+  React.useEffect(() => {
+    if (isOpen) {
+      axios.get("http://127.0.0.1:8000/api/destinations/")
+        .then(res => setDestinationsList(res.data))
+        .catch(err => console.error("Error fetching destinations:", err));
+
+      axios.get("http://127.0.0.1:8000/api/starting-cities/")
+        .then(res => setStartingCitiesList(res.data))
+        .catch(err => console.error("Error fetching starting cities:", err));
+    }
+  }, [isOpen]);
+
+  // Click Outside
+  React.useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest(".custom-dropdown-container")) {
+        setActiveCityIndex(null);
+        setIsStartCityOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredDestinations = destinationsList.filter(d =>
+    d.name.toLowerCase().includes(citySearch.toLowerCase()) ||
+    (d.country && d.country.toLowerCase().includes(citySearch.toLowerCase()))
+  );
+
+  const filteredStartingCities = startingCitiesList.filter(c =>
+    c.name.toLowerCase().includes(startCitySearch.toLowerCase())
+  );
+
   // Step 2 States
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -299,17 +343,59 @@ const HolidaysFormModal = ({ isOpen, onClose, packageType }) => {
               <div className="space-y-4 mb-8">
                 {cities.map((item, i) => (
                   <div key={i} className="flex gap-3 items-center">
-                    <div className="w-full">
-                      <input
-                        type="text"
-                        placeholder="Destination"
-                        className={`border px-3 py-2 rounded w-full ${errors.cities ? 'border-red-500' : ''}`}
-                        value={item.cityName}
-                        onChange={(e) => {
-                          updateCity(i, "cityName", e.target.value);
-                          if (errors.cities) setErrors({ ...errors, cities: '' });
+                    <div className="w-full relative custom-dropdown-container">
+                      <div
+                        className={`border px-3 py-2 rounded w-full bg-white cursor-pointer flex justify-between items-center ${errors.cities ? 'border-red-500' : ''}`}
+                        onClick={() => {
+                          setActiveCityIndex(activeCityIndex === i ? null : i);
+                          setCitySearch("");
                         }}
-                      />
+                      >
+                        <span className={item.cityName ? "text-gray-900" : "text-gray-400"}>
+                          {item.cityName || "Destination"}
+                        </span>
+                        <svg className={`w-4 h-4 text-gray-400 transition-transform ${activeCityIndex === i ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+
+                      {activeCityIndex === i && (
+                        <div className="absolute z-50 mt-1 w-full bg-white border rounded shadow-xl overflow-hidden min-w-[200px]">
+                          <div className="p-2 border-b bg-gray-50">
+                            <input
+                              type="text"
+                              placeholder="Search destination..."
+                              className="w-full p-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-green-700"
+                              value={citySearch}
+                              onChange={(e) => setCitySearch(e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
+                              autoFocus
+                            />
+                          </div>
+                          <ul className="max-h-52 overflow-y-auto py-1">
+                            {filteredDestinations.length > 0 ? (
+                              filteredDestinations.map((dest) => (
+                                <li
+                                  key={dest.id}
+                                  className="px-4 py-2 hover:bg-green-50 cursor-pointer text-sm"
+                                  onClick={() => {
+                                    updateCity(i, "cityName", dest.name);
+                                    setActiveCityIndex(null);
+                                    if (errors.cities) setErrors({ ...errors, cities: '' });
+                                  }}
+                                >
+                                  <div className="flex flex-col">
+                                    <span>{dest.name}</span>
+                                    {dest.country && <span className="text-[10px] text-gray-400 uppercase">{dest.country}</span>}
+                                  </div>
+                                </li>
+                              ))
+                            ) : (
+                              <li className="px-4 py-2 text-gray-500 text-sm italic">No results found</li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
                       {errors.cities && <p className="text-red-500 text-sm mt-1">{errors.cities}</p>}
                     </div>
 
@@ -343,17 +429,59 @@ const HolidaysFormModal = ({ isOpen, onClose, packageType }) => {
 
                 <div>
                   <label className="font-semibold">Leaving From *</label>
-                  <div className="w-full">
-                    <input
-                      type="text"
-                      placeholder="Starting City"
-                      className={`border px-3 py-2 rounded w-full ${errors.startCity ? 'border-red-500' : ''}`}
-                      value={startCity}
-                      onChange={(e) => {
-                        setStartCity(e.target.value);
-                        if (errors.startCity) setErrors({ ...errors, startCity: '' });
+                  <div className="w-full relative custom-dropdown-container">
+                    <div
+                      className={`border px-3 py-2 rounded w-full bg-white cursor-pointer flex justify-between items-center mt-1 ${errors.startCity ? 'border-red-500' : ''}`}
+                      onClick={() => {
+                        setIsStartCityOpen(!isStartCityOpen);
+                        setStartCitySearch("");
                       }}
-                    />
+                    >
+                      <span className={startCity ? "text-gray-900" : "text-gray-400"}>
+                        {startCity || "Starting City"}
+                      </span>
+                      <svg className={`w-4 h-4 text-gray-400 transition-transform ${isStartCityOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+
+                    {isStartCityOpen && (
+                      <div className="absolute z-50 mt-1 w-full bg-white border rounded shadow-xl overflow-hidden">
+                        <div className="p-2 border-b bg-gray-50">
+                          <input
+                            type="text"
+                            placeholder="Search starting city..."
+                            className="w-full p-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-green-700"
+                            value={startCitySearch}
+                            onChange={(e) => setStartCitySearch(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            autoFocus
+                          />
+                        </div>
+                        <ul className="max-h-52 overflow-y-auto py-1">
+                          {filteredStartingCities.length > 0 ? (
+                            filteredStartingCities.map((city) => (
+                              <li
+                                key={city.id}
+                                className="px-4 py-2 hover:bg-green-50 cursor-pointer text-sm"
+                                onClick={() => {
+                                  setStartCity(city.name);
+                                  setIsStartCityOpen(false);
+                                  if (errors.startCity) setErrors({ ...errors, startCity: '' });
+                                }}
+                              >
+                                <div className="flex flex-col">
+                                  <span>{city.name}</span>
+                                  {city.region && <span className="text-[10px] text-gray-400 uppercase">{city.region}</span>}
+                                </div>
+                              </li>
+                            ))
+                          ) : (
+                            <li className="px-4 py-2 text-gray-500 text-sm italic">No results found</li>
+                          )}
+                        </ul>
+                      </div>
+                    )}
                     {errors.startCity && <p className="text-red-500 text-sm mt-1">{errors.startCity}</p>}
                   </div>
                 </div>

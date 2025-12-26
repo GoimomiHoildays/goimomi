@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 
 // ========== SAMPLE IMAGES FROM ASSETS ==========
 import bhutanImg from "../assets/Package/Id1.png";
@@ -13,176 +13,121 @@ import ukImg from "../assets/Package/Id8.png";
 import uzbekistanImg from "../assets/Package/Id9.png";
 import nepalImg from "../assets/Package/Id10.png";
 import cambodiaImg from "../assets/Package/Id11.png";
-import turkeyImg from "../assets/Package/ID12.png";
 
 
 const Holidays = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   // ===================== FILTER STATES =====================
+  const [category, setCategory] = useState("");
   const [destination, setDestination] = useState("");
+
+  useEffect(() => {
+    if (location.state?.filter) {
+      setDestination(location.state.filter);
+    }
+    if (location.state?.category) {
+      setCategory(location.state.category);
+    } else {
+      setCategory("");
+    }
+  }, [location, location.state]);
+
   const [nights, setNights] = useState("");
   const [startingCity, setStartingCity] = useState("");
-  const [budget, setBudget] = useState([10000, 200000]);
+  const [budget, setBudget] = useState([0, 200000]);
   const [flightOption, setFlightOption] = useState("");
 
+  const [isDestOpen, setIsDestOpen] = useState(false);
+  const [destSearch, setDestSearch] = useState("");
+  const [isStartCityOpen, setIsStartCityOpen] = useState(false);
+  const [startCitySearch, setStartCitySearch] = useState("");
+
   // ===================== PACKAGE DATA =====================
-  const [packages, setPackages] = useState([
-    {
-      id: 1,
-      title: "Escape to Endless Blue – Maldives",
-      days: 4,
-      nights: 3,
-      image: bhutanImg,
-      price: 35999,
-      oldPrice: 45000,
-      startingCity: "Chennai",
-      destination: "Maldives",
-      groupSize: 8,
-    },
-    {
-      id: 2,
-      title: "A Romantic Escape in the Heart of Bali",
-      days: 5,
-      nights: 4,
-      image: vietnamImg,
-      price: 46973,
-      oldPrice: 55000,
-      startingCity: "Chennai",
-      destination: "BALI",
-      groupSize: 8,
-    },
-    {
-      id: 3,
-      title: "Dubai Extravaganza",
-      days: 3,
-      nights: 2,
-      image: dubaiImg,
-      price: 52161,
-      oldPrice: 60000,
-      startingCity: "Chennai",
-      destination: "Dubai",
-      groupSize: 8,
-    },
-      {
-      id: 4,
-      title: "Where Urban Meets Nature – Singapore",
-      days: 5,
-      nights: 4,
-      image: singaporeImg,
-      price: 52161,
-      oldPrice: 60000,
-      startingCity: "Chennai",
-      destination: "Singapore",
-      groupSize: 8,
-    },
-      {
-      id: 5,
-      title: "Nature, Heritage & Modern Marvels – Malaysia",
-      days: 4,
-      nights: 3,
-      image: malaysiaImg,
-      price: 52161,
-      oldPrice: 60000,
-      startingCity: "Chennai",
-      destination: "Malaysia",
-      groupSize: 8,
-    },
-      {
-      id: 6,
-      title: "A Journey Through Faith & Heritage | Saudi Arabia",
-      days: 4,
-      nights: 3,
-      image: saudiArabiaImg,
-      price: 52161,
-      oldPrice: 60000,
-      startingCity: "Chennai",
-      destination: "Saudi Arabia",
-      groupSize: 8,
-    },
-      {
-      id: 7,
-      title: "Romance Written in Every Street – Europe",
-      days: 5,
-      nights: 4,
-      image: europeImg,
-      price: 52161,
-      oldPrice: 60000,
-      startingCity: "Chennai",
-      destination: "Europe",
-      groupSize: 8,
-    },
-      {
-      id: 8,
-      title: "From London Lights to Highland Nights – UK",
-      days: 4,
-      nights: 3,
-      image: ukImg,
-      price: 52161,
-      oldPrice: 60000,
-      startingCity: "Chennai",
-      destination: "UNITED KINGDOM",
-      groupSize: 8,
-    },
-      {
-      id: 9,
-      title: "Jewels of the Silk Road & Caucasus",
-      days: 5,
-      nights: 4,
-      image: uzbekistanImg,
-      price: 52161,
-      oldPrice: 60000,
-      startingCity: "Chennai",
-      destination: "UZBEKISTAN,AZERBAIJAN,GEORGIA",
-      groupSize: 8,
-    },
-      {
-      id: 10,
-      title: "Two Kingdoms, One Spiritual Journey – Nepal & Bhutan",
-      days: 3,
-      nights: 2,
-      image: nepalImg,
-      price: 52161,
-      oldPrice: 60000,
-      startingCity: "Chennai",
-      destination: "NEPAL, BHUTAN",
-      groupSize: 8,
-    },
-      {
-      id: 11,
-      title: "Three Nations, One Indochina Journey – Vietnam, Cambodia & Laos",
-      days: 4,
-      nights: 3,
-      image: cambodiaImg,
-      price: 52161,
-      oldPrice: 60000,
-      startingCity: "Chennai",
-      destination: "VIETNAM, CAMBODIA & LAOS",
-      groupSize: 8,
-    },
-    {
-      id: 12,
-      title: "Cappadocia to Coastlines – Discover Turkey",
-      days: 3,
-      nights: 2,
-      image: turkeyImg,
-      price: 52161,
-      oldPrice: 60000,
-      startingCity: "Chennai",
-      destination: "Turkey",
-      groupSize: 8,
-    },
-  ]);
+  const [packages, setPackages] = useState([]);
+  const [destinationsList, setDestinationsList] = useState([]);
+  const [startingCitiesList, setStartingCitiesList] = useState([]);
+
+  useEffect(() => {
+    // Fetch packages
+    fetch("http://127.0.0.1:8000/api/packages/")
+      .then((res) => res.json())
+      .then((data) => setPackages(data))
+      .catch((err) => console.error("Error fetching packages:", err));
+
+    // Fetch destinations
+    fetch("http://127.0.0.1:8000/api/destinations/")
+      .then((res) => res.json())
+      .then((data) => setDestinationsList(data))
+      .catch((err) => console.error("Error fetching destinations:", err));
+
+    // Fetch starting cities
+    fetch("http://127.0.0.1:8000/api/starting-cities/")
+      .then((res) => res.json())
+      .then((data) => setStartingCitiesList(data))
+      .catch((err) => console.error("Error fetching starting cities:", err));
+  }, []);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest(".dest-dropdown-container")) {
+        setIsDestOpen(false);
+      }
+      if (!event.target.closest(".startcity-dropdown-container")) {
+        setIsStartCityOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredDestinationsList = destinationsList.filter(dest =>
+    dest.name.toLowerCase().includes(destSearch.toLowerCase()) ||
+    (dest.country && dest.country.toLowerCase().includes(destSearch.toLowerCase()))
+  );
+
+  const filteredStartingCitiesList = startingCitiesList.filter(city =>
+    city.name.toLowerCase().includes(startCitySearch.toLowerCase())
+  );
+
+  // Group starting cities by region
+  const groupedStartingCities = startingCitiesList.reduce((acc, city) => {
+    const region = city.region || "Other";
+    if (!acc[region]) {
+      acc[region] = [];
+    }
+    acc[region].push(city);
+    return acc;
+  }, {});
+
+  // Helper to fix image URLs
+  const getImageUrl = (path) => {
+    if (!path) return "";
+    if (path.startsWith("http")) return path;
+    return `http://127.0.0.1:8000${path}`;
+  };
 
   // ===================== FILTERED LIST =====================
   const filtered = packages.filter((pkg) => {
+    const categoryMatch = category ? pkg.category === category : true;
+
+    // Destination match
+    const destinationMatch = !destination ? true : (
+      pkg.destinations && pkg.destinations.some(d => d.name === destination)
+    );
+
+    // Ensure price is a number
+    const price = Number(pkg.Offer_price || 0);
+
     return (
-      (destination ? pkg.destination === destination : true) &&
+      categoryMatch &&
+      destinationMatch &&
       (nights ? pkg.nights === Number(nights) : true) &&
-      (startingCity ? pkg.startingCity === startingCity : true) &&
-      pkg.price >= budget[0] &&
-      pkg.price <= budget[1] &&
-      (flightOption ? pkg.flight === flightOption : true)
+      (startingCity ? pkg.starting_city === startingCity : true) &&
+      price >= budget[0] &&
+      price <= budget[1]
     );
   });
 
@@ -193,27 +138,69 @@ const Holidays = () => {
       <div className="w-[25%] bg-white shadow-md p-6 sticky top-0 h-screen overflow-y-auto">
         <h3 className="text-xl font-semibold mb-4">Filters</h3>
 
-        {/* DESTINATION */}
-        <div className="mb-6">
-          <label className="font-semibold">Destinations</label>
-          <select
-            className="w-full p-2 border rounded mt-2"
-            onChange={(e) => setDestination(e.target.value)}
+        {/* DESTINATION (SEARCHABLE) */}
+        <div className="mb-6 relative dest-dropdown-container">
+          <label className="font-semibold block mb-2">Destination</label>
+
+          <div
+            className="w-full p-2 border rounded bg-white cursor-pointer flex justify-between items-center"
+            onClick={() => setIsDestOpen(!isDestOpen)}
           >
-            <option value="">All</option>
-            <option value="Bhutan">Bhutan</option>
-            <option value="Vietnam">Vietnam</option>
-            <option value="Dubai">Dubai</option>
-            <option value="Singapore">Singapore</option>
-            <option value="Malaysia">Malaysia</option>
-            <option value="Saudi Arabia">Saudi Arabia</option>
-            <option value="Europe">Europe</option>
-            <option value="UNITED KINGDOM">UNITED KINGDOM</option>
-            <option value="UZBEKISTAN,AZERBAIJAN,GEORGIA">UZBEKISTAN,AZERBAIJAN,GEORGIA</option>
-            <option value="NEPAL, BHUTAN">NEPAL, BHUTAN</option>
-            <option value="VIETNAM, CAMBODIA & LAOS">VIETNAM, CAMBODIA & LAOS</option>
-            <option value="Turkey">Turkey</option>  
-          </select>
+            <span className={destination ? "text-gray-900" : "text-gray-500"}>
+              {destination || "Any Destination"}
+            </span>
+            <span className="text-xs transition-transform duration-200" style={{ transform: isDestOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+              ▼
+            </span>
+          </div>
+
+          {isDestOpen && (
+            <div className="absolute z-50 mt-1 w-full bg-white border rounded shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200">
+              <div className="p-2 border-b bg-gray-50">
+                <input
+                  type="text"
+                  placeholder="Search destination..."
+                  className="w-full p-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-green-700"
+                  value={destSearch}
+                  onChange={(e) => setDestSearch(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  autoFocus
+                />
+              </div>
+              <ul className="max-h-60 overflow-y-auto py-1">
+                <li
+                  className="px-4 py-2 hover:bg-green-50 cursor-pointer text-sm"
+                  onClick={() => {
+                    setDestination("");
+                    setIsDestOpen(false);
+                    setDestSearch("");
+                  }}
+                >
+                  Any Destination
+                </li>
+                {filteredDestinationsList.length > 0 ? (
+                  filteredDestinationsList.map((dest) => (
+                    <li
+                      key={dest.id}
+                      className={`px-4 py-2 hover:bg-green-50 cursor-pointer text-sm ${destination === dest.name ? 'bg-green-100 font-semibold' : ''}`}
+                      onClick={() => {
+                        setDestination(dest.name);
+                        setIsDestOpen(false);
+                        setDestSearch("");
+                      }}
+                    >
+                      <div className="flex flex-col">
+                        <span>{dest.name}</span>
+                        {dest.country && <span className="text-[10px] text-gray-400 uppercase tracking-tighter">{dest.country}</span>}
+                      </div>
+                    </li>
+                  ))
+                ) : (
+                  <li className="px-4 py-2 text-gray-500 text-sm italic">No results found</li>
+                )}
+              </ul>
+            </div>
+          )}
         </div>
 
         {/* NIGHTS */}
@@ -256,177 +243,69 @@ const Holidays = () => {
           </select>
         </div>
 
-        {/* STARTING CITY */}
-        <div className="mb-6">
-          <label className="font-semibold">Starting City</label>
-          <select
-            className="w-full p-2 border rounded mt-2"
-            onChange={(e) => setStartingCity(e.target.value)}
+        {/* STARTING CITY (SEARCHABLE) */}
+        <div className="mb-6 relative startcity-dropdown-container">
+          <label className="font-semibold block mb-2">Starting City</label>
+
+          <div
+            className="w-full p-2 border rounded bg-white cursor-pointer flex justify-between items-center"
+            onClick={() => setIsStartCityOpen(!isStartCityOpen)}
           >
-            <option value="">Any</option>
+            <span className={startingCity ? "text-gray-900" : "text-gray-500"}>
+              {startingCity || "Any Starting City"}
+            </span>
+            <span className="text-xs transition-transform duration-200" style={{ transform: isStartCityOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+              ▼
+            </span>
+          </div>
 
-            {/* ANDAMAN & NICOBAR */}
-            <option value="Port Blair">Port Blair (IXZ)</option>
-
-            {/* ANDHRA PRADESH */}
-            <option value="Visakhapatnam">Visakhapatnam (VTZ)</option>
-            <option value="Vijayawada">Vijayawada (VGA)</option>
-            <option value="Tirupati">Tirupati (TIR)</option>
-            <option value="Rajahmundry">Rajahmundry (RJA)</option>
-            <option value="Kadapa">Kadapa (CDP)</option>
-            <option value="Kurnool">Kurnool (KJB)</option>
-
-            {/* ARUNACHAL PRADESH */}
-            <option value="Itanagar">Itanagar (Hollongi) (HGI)</option>
-
-            {/* ASSAM */}
-            <option value="Guwahati">Guwahati (GAU)</option>
-            <option value="Dibrugarh">Dibrugarh (DIB)</option>
-            <option value="Jorhat">Jorhat (JRH)</option>
-            <option value="Silchar">Silchar (IXS)</option>
-            <option value="Tezpur">Tezpur (TEZ)</option>
-            <option value="North Lakhimpur">North Lakhimpur (IXI)</option>
-
-            {/* BIHAR */}
-            <option value="Patna">Patna (PAT)</option>
-            <option value="Gaya">Gaya (GAY)</option>
-            <option value="Darbhanga">Darbhanga (DBR)</option>
-
-            {/* CHHATTISGARH */}
-            <option value="Raipur">Raipur (RPR)</option>
-            <option value="Bilaspur">Bilaspur (PAB)</option>
-            <option value="Jagdalpur">Jagdalpur (JGB)</option>
-
-{/* DELHI */}
-<option value="Delhi">Delhi (DEL)</option>
-
-{/* GOA */}
-<option value="Goa">Goa (Dabolim) (GOI)</option>
-<option value="Mopa">Manohar Intl (Mopa) (GOX)</option>
-
-{/* GUJARAT */}
-<option value="Ahmedabad">Ahmedabad (AMD)</option>
-<option value="Surat">Surat (STV)</option>
-<option value="Vadodara">Vadodara (BDQ)</option>
-<option value="Rajkot">Rajkot (RAJ)</option>
-<option value="Bhavnagar">Bhavnagar (BHU)</option>
-<option value="Jamnagar">Jamnagar (JGA)</option>
-<option value="Bhuj">Bhuj (BHJ)</option>
-<option value="Porbandar">Porbandar (PBD)</option>
-<option value="Kandla">Kandla (IXY)</option>
-
-{/* HARYANA */}
-<option value="Hisar">Hisar (HSS)</option>
-
-{/* HIMACHAL PRADESH */}
-<option value="Shimla">Shimla (SLV)</option>
-<option value="Kullu">Kullu–Manali (KUU)</option>
-<option value="Dharamshala">Dharamshala (DHM)</option>
-
-{/* JAMMU & KASHMIR */}
-<option value="Srinagar">Srinagar (SXR)</option>
-<option value="Jammu">Jammu (IXJ)</option>
-
-{/* JHARKHAND */}
-<option value="Ranchi">Ranchi (IXR)</option>
-<option value="Deoghar">Deoghar (DGH)</option>
-
-{/* KARNATAKA */}
-<option value="Bangalore">Bangalore (BLR)</option>
-<option value="Mangalore">Mangalore (IXE)</option>
-<option value="Hubli">Hubli (HBX)</option>
-<option value="Belgaum">Belgaum (IXG)</option>
-<option value="Mysore">Mysore (MYQ)</option>
-<option value="Kalaburagi">Kalaburagi (GBI)</option>
-
-{/* KERALA */}
-<option value="Kochi">Kochi (COK)</option>
-<option value="Trivandrum">Trivandrum (TRV)</option>
-<option value="Calicut">Calicut (CCJ)</option>
-<option value="Kannur">Kannur (CNN)</option>
-
-{/* LADAKH */}
-<option value="Leh">Leh (IXL)</option>
-
-{/* MADHYA PRADESH */}
-<option value="Indore">Indore (IDR)</option>
-<option value="Bhopal">Bhopal (BHO)</option>
-<option value="Jabalpur">Jabalpur (JLR)</option>
-<option value="Gwalior">Gwalior (GWL)</option>
-<option value="Khajuraho">Khajuraho (HJR)</option>
-
-{/* MAHARASHTRA */}
-<option value="Mumbai">Mumbai (BOM)</option>
-<option value="Pune">Pune (PNQ)</option>
-<option value="Nagpur">Nagpur (NAG)</option>
-<option value="Aurangabad">Aurangabad (IXU)</option>
-<option value="Nashik">Nashik (ISK)</option>
-<option value="Shirdi">Shirdi (SAG)</option>
-<option value="Kolhapur">Kolhapur (KLH)</option>
-<option value="Solapur">Solapur (SSE)</option>
-
-{/* MANIPUR */}
-<option value="Imphal">Imphal (IMF)</option>
-
-{/* MEGHALAYA */}
-<option value="Shillong">Shillong (SHL)</option>
-
-{/* MIZORAM */}
-<option value="Aizawl">Aizawl (AJL)</option>
-
-{/* NAGALAND */}
-<option value="Dimapur">Dimapur (DMU)</option>
-
-{/* ORISSA */}
-<option value="Bhubaneswar">Bhubaneswar (BBI)</option>
-<option value="Jharsuguda">Jharsuguda (JRG)</option>
-<option value="Rourkela">Rourkela (RRK)</option>
-
-{/* PUNJAB */}
-<option value="Amritsar">Amritsar (ATQ)</option>
-<option value="Chandigarh">Chandigarh (IXC)</option>
-<option value="Ludhiana">Ludhiana (LUH)</option>
-<option value="Bathinda">Bathinda (BUP)</option>
-
-{/* RAJASTHAN */}
-<option value="Jaipur">Jaipur (JAI)</option>
-<option value="Udaipur">Udaipur (UDR)</option>
-<option value="Jodhpur">Jodhpur (JDH)</option>
-<option value="Bikaner">Bikaner (BKB)</option>
-<option value="Kota">Kota (KTU)</option>
-
-{/* TAMIL NADU */}
-<option value="Chennai">Chennai (MAA)</option>
-<option value="Coimbatore">Coimbatore (CJB)</option>
-<option value="Madurai">Madurai (IXM)</option>
-<option value="Trichy">Trichy (TRZ)</option>
-<option value="Salem">Salem (SXV)</option>
-<option value="Tuticorin">Tuticorin (TCR)</option>
-
-{/* TELANGANA */}
-<option value="Hyderabad">Hyderabad (HYD)</option>
-
-{/* TRIPURA */}
-<option value="Agartala">Agartala (IXA)</option>
-
-{/* UTTAR PRADESH */}
-<option value="Lucknow">Lucknow (LKO)</option>
-<option value="Varanasi">Varanasi (VNS)</option>
-<option value="Prayagraj">Prayagraj (IXD)</option>
-<option value="Kanpur">Kanpur (KNU)</option>
-<option value="Gorakhpur">Gorakhpur (GOP)</option>
-
-{/* UTTARAKHAND */}
-<option value="Dehradun">Dehradun (DED)</option>
-<option value="Pantnagar">Pantnagar (PGH)</option>
-
-{/* WEST BENGAL */}
-<option value="Kolkata">Kolkata (CCU)</option>
-<option value="Bagdogra">Bagdogra (IXB)</option>
-<option value="Durgapur">Durgapur (RDP)</option>
-<option value="Cooch Behar">Cooch Behar (COH)</option>
-
-          </select>
+          {isStartCityOpen && (
+            <div className="absolute z-50 mt-1 w-full bg-white border rounded shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200">
+              <div className="p-2 border-b bg-gray-50">
+                <input
+                  type="text"
+                  placeholder="Search starting city..."
+                  className="w-full p-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-green-700"
+                  value={startCitySearch}
+                  onChange={(e) => setStartCitySearch(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  autoFocus
+                />
+              </div>
+              <ul className="max-h-60 overflow-y-auto py-1">
+                <li
+                  className="px-4 py-2 hover:bg-green-50 cursor-pointer text-sm"
+                  onClick={() => {
+                    setStartingCity("");
+                    setIsStartCityOpen(false);
+                    setStartCitySearch("");
+                  }}
+                >
+                  Any Starting City
+                </li>
+                {filteredStartingCitiesList.length > 0 ? (
+                  filteredStartingCitiesList.map((city) => (
+                    <li
+                      key={city.id}
+                      className={`px-4 py-2 hover:bg-green-50 cursor-pointer text-sm ${startingCity === city.name ? 'bg-green-100 font-semibold' : ''}`}
+                      onClick={() => {
+                        setStartingCity(city.name);
+                        setIsStartCityOpen(false);
+                        setStartCitySearch("");
+                      }}
+                    >
+                      <div className="flex flex-col">
+                        <span>{city.name}</span>
+                        {city.region && <span className="text-[10px] text-gray-400 uppercase tracking-tighter">{city.region}</span>}
+                      </div>
+                    </li>
+                  ))
+                ) : (
+                  <li className="px-4 py-2 text-gray-500 text-sm italic">No results found</li>
+                )}
+              </ul>
+            </div>
+          )}
         </div>
 
         {/* BUDGET */}
@@ -434,10 +313,10 @@ const Holidays = () => {
           <label className="font-semibold">Budget</label>
           <input
             type="range"
-            min="10000"
+            min="0"
             max="200000"
             value={budget[1]}
-            onChange={(e) => setBudget([10000, Number(e.target.value)])}
+            onChange={(e) => setBudget([0, Number(e.target.value)])}
             className="w-full mt-2"
           />
           <p className="text-sm mt-1">₹ {budget[0]} – ₹ {budget[1]}</p>
@@ -462,6 +341,8 @@ const Holidays = () => {
 
         <h2 className="text-2xl font-bold mb-6">Holiday Packages</h2>
 
+
+
         {filtered.map((pkg) => (
           <div
             key={pkg.id}
@@ -469,10 +350,12 @@ const Holidays = () => {
           >
 
             {/* IMAGE SECTION */}
-            <div className="relative w-72">
+            <div className="relative w-72 h-48 bg-gray-200 rounded-lg">
               <img
-                src={pkg.image}
+                src={getImageUrl(pkg.card_image)}
+                onError={(e) => { e.target.src = "https://via.placeholder.com/300x200?text=No+Image" }}
                 className="w-72 h-48 rounded-lg object-cover"
+                alt={pkg.title}
               />
 
               {/* Days badge */}
@@ -493,7 +376,9 @@ const Holidays = () => {
 
               {/* LOCATION */}
               <p className="text-gray-600 text-sm mt-1">
-                {pkg.startingCity} • {pkg.destination}
+                {pkg.starting_city}
+                {pkg.destinations && pkg.destinations.length > 0 &&
+                  ` • ${pkg.destinations.map(d => `${d.name} (${d.nights}N)`).join(" • ")}`}
               </p>
 
               {/* BULLETS */}
@@ -501,20 +386,30 @@ const Holidays = () => {
                 <li>• Accommodation in all places as per itinerary</li>
                 <li>• Daily Breakfast & Dinner included</li>
                 <li>• All Tours and Transfers on private basis</li>
+                <li>• Sightseeing as per the itinerary</li>
+                <li>• All Entrance Fees included</li>
               </ul>
 
-              
+
 
               {/* Departure info */}
               <div className="flex gap-12 mt-4 text-sm">
                 <div>
                   <p className="text-gray-500">Departure Starting</p>
-                  <p className="font-semibold">04 Jan 2026</p>
+                  <p className="font-semibold">
+                    {pkg.start_date
+                      ? new Date(pkg.start_date).toLocaleDateString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })
+                      : "Flexible Dates"}
+                  </p>
                 </div>
 
                 <div>
                   <p className="text-gray-500">Max. Group Size</p>
-                  <p className="font-semibold">{pkg.groupSize}</p>
+                  <p className="font-semibold">{pkg.group_size}</p>
                 </div>
               </div>
             </div>
@@ -523,10 +418,12 @@ const Holidays = () => {
             <div className="text-right flex flex-col justify-between">
 
               <div>
-                <p className="line-through text-gray-400 text-sm">
-                  ₹ {pkg.oldPrice.toLocaleString()}
-                </p>
-                <p className="text-2xl font-bold">₹ {pkg.price.toLocaleString()}</p>
+                {pkg.price && (
+                  <p className="line-through text-gray-400 text-sm">
+                    ₹ {pkg.price.toLocaleString()}
+                  </p>
+                )}
+                <p className="text-2xl font-bold">₹ {(pkg.Offer_price || 0).toLocaleString()}</p>
                 <p className="text-gray-500 text-xs">per person</p>
               </div>
 

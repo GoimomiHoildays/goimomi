@@ -4,6 +4,7 @@ import { Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar.jsx'
 import Footer from './components/Footer.jsx'
 import ScrollToTop from './components/ScrollToTop.jsx'
+import ComingSoon from './components/ComingSoon.jsx'
 
 // Pages
 import Home from './pages/Home.jsx'
@@ -39,8 +40,17 @@ const App = () => {
           <Route path="/contact" element={<Contact />} />
           <Route path="/contact/success" element={<ContactSuccess />} />
           <Route path="/holidays" element={<Holidays />} />
-          <Route path="/customized-holidays" element={<CustomizedHolidays />} />
-          <Route path="/customized-umrah" element={<CustomizedUmrah />} />
+          <Route path="/customizedHolidays" element={<CustomizedHolidays />} />
+          <Route
+            path="/umrah-package"
+            element={
+              <ComingSoon
+                title="Umrah Packages"
+                description="We are curated special Umrah packages for you. Stay tuned for the launch!"
+              />
+            }
+          />
+          <Route path="/customizedumrah" element={<CustomizedUmrah />} />
           <Route path="/form" element={<PlanTrip />} />
           <Route path="/cab" element={<Cab />} />
           <Route path="/cruise" element={<Cruise />} />
