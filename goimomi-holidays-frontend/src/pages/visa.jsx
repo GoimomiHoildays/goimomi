@@ -5,7 +5,7 @@ const Visa = () => {
   return (
     <ComingSoon
       title="Visa Assistance Coming Soon"
-      subtitle="Complete visa processing support will be available shortly."
+      description="Complete visa processing support will be available shortly."
     />
   );
 };

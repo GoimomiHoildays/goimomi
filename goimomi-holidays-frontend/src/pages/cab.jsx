@@ -5,7 +5,7 @@ const Cab = () => {
   return (
     <ComingSoon
       title="Cab Booking Coming Soon"
-      subtitle="We are preparing the best cab service experience for your travel needs."
+      description="We are working on premium cab booking services for your travel comfort."
     />
   );
 };

@@ -169,3 +169,27 @@ class ItineraryMaster(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Nationality(models.Model):
+    country = models.CharField(max_length=100)
+    nationality = models.CharField(max_length=100)
+    continent = models.CharField(max_length=50)
+
+    class Meta:
+        verbose_name_plural = "Nationalities"
+        ordering = ['continent', 'country']
+
+    def __str__(self):
+        return f"{self.country} ({self.nationality})"
+
+
+class UmrahDestination(models.Model):
+    name = models.CharField(max_length=100)
+    country = models.CharField(max_length=100)
+
+    class Meta:
+        ordering = ['country', 'name']
+
+    def __str__(self):
+        return f"{self.name} - {self.country}"

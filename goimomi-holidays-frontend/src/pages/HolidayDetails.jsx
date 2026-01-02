@@ -9,7 +9,7 @@ const HolidayDetails = () => {
   const getImageUrl = (url) => {
     if (!url) return "";
     if (url.startsWith("http")) return url;
-    return `http://127.0.0.1:8000${url}`;
+    return `${url}`;
   };
 
   const toggleDay = (index) => {
@@ -17,7 +17,7 @@ const HolidayDetails = () => {
   };
 
   useEffect(() => {
-    fetch(`http://127.0.0.1:8000/api/packages/${id}/`)
+    fetch(`/api/packages/${id}/`)
       .then((res) => res.json())
       .then((data) => setPkg(data))
       .catch((err) => console.error("Error fetching package details:", err));

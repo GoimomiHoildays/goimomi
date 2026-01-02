@@ -2,48 +2,6 @@ import React, { useState } from "react";
 import axios from "axios";
 import SuccessModal from "../components/SuccessModal";
 
-const NATIONALITIES = [
-  "Afghan", "Albanian", "Algerian", "American", "Andorran", "Angolan", "Anguillan",
-  "Citizen of Antigua and Barbuda", "Argentine", "Armenian", "Australian", "Austrian",
-  "Azerbaijani", "Bahamian", "Bahraini", "Bangladeshi", "Barbadian", "Belarusian",
-  "Belgian", "Belizean", "Beninese", "Bermudian", "Bhutanese", "Bolivian",
-  "Citizen of Bosnia and Herzegovina", "Botswanan", "Brazilian", "British",
-  "British Virgin Islander", "Bruneian", "Bulgarian", "Burkinan", "Burmese",
-  "Burundian", "Cambodian", "Cameroonian", "Canadian", "Cape Verdean",
-  "Cayman Islander", "Central African", "Chadian", "Chilean", "Chinese", "Colombian",
-  "Comoran", "Congolese (Congo)", "Congolese (DRC)", "Cook Islander", "Costa Rican",
-  "Croatian", "Cuban", "Cymraes", "Cymro", "Cypriot", "Czech", "Danish", "Djiboutian",
-  "Dominican", "Citizen of the Dominican Republic", "Dutch", "East Timorese",
-  "Ecuadorean", "Egyptian", "Emirati", "English", "Equatorial Guinean", "Eritrean",
-  "Estonian", "Ethiopian", "Faroese", "Fijian", "Filipino", "Finnish", "French",
-  "Gabonese", "Gambian", "Georgian", "German", "Ghanaian", "Gibraltarian", "Greek",
-  "Greenlandic", "Grenadian", "Guamanian", "Guatemalan", "Citizen of Guinea-Bissau",
-  "Guinean", "Guyanese", "Haitian", "Honduran", "Hong Konger", "Hungarian",
-  "Icelandic", "Indian", "Indonesian", "Iranian", "Iraqi", "Irish", "Israeli",
-  "Italian", "Ivorian", "Jamaican", "Japanese", "Jordanian", "Kazakh", "Kenyan",
-  "Kittitian", "Citizen of Kiribati", "Kosovan", "Kuwaiti", "Kyrgyz", "Lao",
-  "Latvian", "Lebanese", "Liberian", "Libyan", "Liechtenstein citizen", "Lithuanian",
-  "Luxembourger", "Macanese", "Macedonian", "Malagasy", "Malawian", "Malaysian",
-  "Maldivian", "Malian", "Maltese", "Marshallese", "Martiniquais", "Mauritanian",
-  "Mauritian", "Mexican", "Micronesian", "Moldovan", "Monegasque", "Mongolian",
-  "Montenegrin", "Montserratian", "Moroccan", "Mosotho", "Mozambican", "Namibian",
-  "Nauruan", "Nepalese", "New Zealander", "Nicaraguan", "Nigerian", "Nigerien",
-  "Niuean", "North Korean", "Northern Irish", "Norwegian", "Omani", "Pakistani",
-  "Palauan", "Palestinian", "Panamanian", "Papua New Guinean", "Paraguayan",
-  "Peruvian", "Pitcairn Islander", "Polish", "Portuguese", "Prydeinig", "Puerto Rican",
-  "Qatari", "Romanian", "Russian", "Rwandan", "Salvadorean", "Sammarinese", "Samoan",
-  "Sao Tomean", "Saudi Arabian", "Scottish", "Senegalese", "Serbian",
-  "Citizen of Seychelles", "Sierra Leonean", "Singaporean", "Slovak", "Slovenian",
-  "Solomon Islander", "Somali", "South African", "South Korean", "South Sudanese",
-  "Spanish", "Sri Lankan", "St Helenian", "St Lucian", "Stateless", "Sudanese",
-  "Surinamese", "Swazi", "Swedish", "Swiss", "Syrian", "Taiwanese", "Tajik",
-  "Tanzanian", "Thai", "Togolese", "Tongan", "Trinidadian", "Tristanian", "Tunisian",
-  "Turkish", "Turkmen", "Turks and Caicos Islander", "Tuvaluan", "Ugandan",
-  "Ukrainian", "Uruguayan", "Uzbek", "Vatican citizen", "Citizen of Vanuatu",
-  "Venezuelan", "Vietnamese", "Vincentian", "Wallisian", "Welsh", "Yemeni",
-  "Zambian", "Zimbabwean"
-];
-
 const UmrahFormOnly = ({ isOpen, onClose, packageType }) => {
   const [step, setStep] = useState(1);
 
@@ -70,10 +28,65 @@ const UmrahFormOnly = ({ isOpen, onClose, packageType }) => {
   const [phone, setPhone] = useState("");
   const [errors, setErrors] = useState({});
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [nationalitiesList, setNationalitiesList] = useState([]);
+  const [startingCitiesList, setStartingCitiesList] = useState([]);
+  const [umrahDestinationsList, setUmrahDestinationsList] = useState([]);
+
+  // Searchable dropdown states
+  const [activeCityIndex, setActiveCityIndex] = useState(null);
+  const [citySearch, setCitySearch] = useState("");
+  const [isStartCityOpen, setIsStartCityOpen] = useState(false);
+  const [startCitySearch, setStartCitySearch] = useState("");
+  const [isNationalityOpen, setIsNationalityOpen] = useState(false);
+  const [nationalitySearch, setNationalitySearch] = useState("");
+
+  // Fetch Data
+  React.useEffect(() => {
+    if (isOpen) {
+      axios.get("/api/nationalities/")
+        .then(res => setNationalitiesList(res.data))
+        .catch(err => console.error("Error fetching nationalities:", err));
+
+      axios.get("/api/starting-cities/")
+        .then(res => setStartingCitiesList(res.data))
+        .catch(err => console.error("Error fetching starting cities:", err));
+
+      axios.get("/api/umrah-destinations/")
+        .then(res => setUmrahDestinationsList(res.data))
+        .catch(err => console.error("Error fetching umrah destinations:", err));
+    }
+  }, [isOpen]);
 
   // Helpers
   const initialCities = [{ cityName: "Makkah", nights: 2 }, { cityName: "Madinah", nights: 2 }];
   const initialRoomDetails = [{ adults: 2, children: 0 }];
+
+  // Click Outside
+  React.useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest(".custom-dropdown-container")) {
+        setActiveCityIndex(null);
+        setIsStartCityOpen(false);
+        setIsNationalityOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredStartingCities = startingCitiesList.filter(c =>
+    c.name.toLowerCase().includes(startCitySearch.toLowerCase())
+  );
+
+  const filteredUmrahDestinations = umrahDestinationsList.filter(d =>
+    d.name.toLowerCase().includes(citySearch.toLowerCase()) ||
+    d.country.toLowerCase().includes(citySearch.toLowerCase())
+  );
+
+  const filteredNationalities = nationalitiesList.filter(n =>
+    n.nationality.toLowerCase().includes(nationalitySearch.toLowerCase()) ||
+    n.country.toLowerCase().includes(nationalitySearch.toLowerCase())
+  );
 
   const updateCity = (i, key, val) => {
     const updated = [...cities];
@@ -200,7 +213,7 @@ const UmrahFormOnly = ({ isOpen, onClose, packageType }) => {
 
     try {
       const response = await axios.post(
-        'http://127.0.0.1:8000/api/umrah-form/',
+        '/api/umrah-form/',
         payload,
         {
           headers: {
@@ -295,26 +308,59 @@ const UmrahFormOnly = ({ isOpen, onClose, packageType }) => {
               <div className="space-y-4 mb-8">
                 {cities.map((item, i) => (
                   <div key={i} className="flex gap-3 items-center">
-                    <select
-                      className="border px-3 py-2 rounded w-full"
-                      value={item.cityName}
-                      onChange={(e) => updateCity(i, "cityName", e.target.value)}
-                    >
-                      <option value="">Select City</option>
-                      <option value="Makkah">Makkah</option>
-                      <option value="Madinah">Madinah</option>
-                      <option value="Sharjah">Sharjah</option>
-                      <option value="Ajman">Ajman</option>
-                      <option value="Umm Al Quwain">Umm Al Quwain</option>
-                      <option value="Abu Dhabi">Abu Dhabi</option>
-                      <option value="Fujairah">Fujairah</option>
-                      <option value="Dubai">Dubai</option>
-                      <option value="Ras Al Khaimah">Ras Al Khaimah</option>
-                      <option value="Al Ain">Al Ain</option>
-                      
+                    <div className="w-full relative custom-dropdown-container">
+                      <div
+                        className="border px-3 py-2 rounded w-full bg-white cursor-pointer flex justify-between items-center"
+                        onClick={() => {
+                          setActiveCityIndex(activeCityIndex === i ? null : i);
+                          setCitySearch("");
+                        }}
+                      >
+                        <span className={item.cityName ? "text-gray-900" : "text-gray-400"}>
+                          {item.cityName || "Select City"}
+                        </span>
+                        <svg className={`w-4 h-4 text-gray-400 transition-transform ${activeCityIndex === i ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
 
-                      {/* Add more options as needed */}
-                    </select>
+                      {activeCityIndex === i && (
+                        <div className="absolute z-50 mt-1 w-full bg-white border rounded shadow-xl overflow-hidden">
+                          <div className="p-2 border-b bg-gray-50">
+                            <input
+                              type="text"
+                              placeholder="Search city..."
+                              className="w-full p-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-green-700"
+                              value={citySearch}
+                              onChange={(e) => setCitySearch(e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
+                              autoFocus
+                            />
+                          </div>
+                          <ul className="max-h-52 overflow-y-auto py-1">
+                            {filteredUmrahDestinations.length > 0 ? (
+                              filteredUmrahDestinations.map((dest) => (
+                                <li
+                                  key={dest.id}
+                                  className="px-4 py-2 hover:bg-green-50 cursor-pointer text-sm"
+                                  onClick={() => {
+                                    updateCity(i, "cityName", dest.name);
+                                    setActiveCityIndex(null);
+                                  }}
+                                >
+                                  <div className="flex flex-col">
+                                    <span>{dest.name}</span>
+                                    <span className="text-[10px] text-gray-400 uppercase">{dest.country}</span>
+                                  </div>
+                                </li>
+                              ))
+                            ) : (
+                              <li className="px-4 py-2 text-gray-500 text-sm italic">No results found</li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
 
                     <select
                       className="border px-3 py-2 rounded"
@@ -343,37 +389,117 @@ const UmrahFormOnly = ({ isOpen, onClose, packageType }) => {
 
               {/* Trip details */}
               <div className="grid grid-cols-2 gap-6 mb-8">
-                <div className="w-full">
+                <div className="w-full relative custom-dropdown-container">
                   <label className="font-semibold">Starting City *</label>
-                  <input
-                    type="text"
-                    placeholder="Starting City"
-                    className={`border px-3 py-2 rounded w-full mt-1 ${errors.startCity ? 'border-red-500' : ''}`}
-                    value={startCity}
-                    onChange={(e) => {
-                      setStartCity(e.target.value);
-                      if (errors.startCity) setErrors({ ...errors, startCity: '' });
+                  <div
+                    className={`border px-3 py-2 rounded w-full bg-white cursor-pointer flex justify-between items-center mt-1 ${errors.startCity ? 'border-red-500' : ''}`}
+                    onClick={() => {
+                      setIsStartCityOpen(!isStartCityOpen);
+                      setStartCitySearch("");
                     }}
-                  />
+                  >
+                    <span className={startCity ? "text-gray-900" : "text-gray-400"}>
+                      {startCity || "Starting City"}
+                    </span>
+                    <svg className={`w-4 h-4 text-gray-400 transition-transform ${isStartCityOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+
+                  {isStartCityOpen && (
+                    <div className="absolute z-50 mt-1 w-full bg-white border rounded shadow-xl overflow-hidden">
+                      <div className="p-2 border-b bg-gray-50">
+                        <input
+                          type="text"
+                          placeholder="Search starting city..."
+                          className="w-full p-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-green-700"
+                          value={startCitySearch}
+                          onChange={(e) => setStartCitySearch(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          autoFocus
+                        />
+                      </div>
+                      <ul className="max-h-52 overflow-y-auto py-1">
+                        {filteredStartingCities.length > 0 ? (
+                          filteredStartingCities.map((city) => (
+                            <li
+                              key={city.id}
+                              className="px-4 py-2 hover:bg-green-50 cursor-pointer text-sm"
+                              onClick={() => {
+                                setStartCity(city.name);
+                                setIsStartCityOpen(false);
+                                if (errors.startCity) setErrors({ ...errors, startCity: '' });
+                              }}
+                            >
+                              <div className="flex flex-col">
+                                <span>{city.name}</span>
+                                {city.region && <span className="text-[10px] text-gray-400 uppercase">{city.region}</span>}
+                              </div>
+                            </li>
+                          ))
+                        ) : (
+                          <li className="px-4 py-2 text-gray-500 text-sm italic">No results found</li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
                   {errors.startCity && <p className="text-red-500 text-sm mt-1">{errors.startCity}</p>}
                 </div>
 
-                <div className="w-full">
+                <div className="w-full relative custom-dropdown-container">
                   <label className="font-semibold">Nationality *</label>
-                  <select
-                    className={`border px-3 py-2 rounded w-full mt-1 ${errors.nationality ? 'border-red-500' : ''}`}
-                    value={nationality}
-                    onChange={(e) => {
-                      setNationality(e.target.value);
-                      if (errors.nationality) setErrors({ ...errors, nationality: '' });
+                  <div
+                    className={`border px-3 py-2 rounded w-full bg-white cursor-pointer flex justify-between items-center mt-1 ${errors.nationality ? 'border-red-500' : ''}`}
+                    onClick={() => {
+                      setIsNationalityOpen(!isNationalityOpen);
+                      setNationalitySearch("");
                     }}
                   >
-                    {NATIONALITIES.map((nat) => (
-                      <option key={nat} value={nat}>
-                        {nat}
-                      </option>
-                    ))}
-                  </select>
+                    <span className={nationality ? "text-gray-900" : "text-gray-400"}>
+                      {nationality || "Select Nationality"}
+                    </span>
+                    <svg className={`w-4 h-4 text-gray-400 transition-transform ${isNationalityOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+
+                  {isNationalityOpen && (
+                    <div className="absolute z-50 mt-1 w-full bg-white border rounded shadow-xl overflow-hidden">
+                      <div className="p-2 border-b bg-gray-50">
+                        <input
+                          type="text"
+                          placeholder="Search nationality..."
+                          className="w-full p-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-green-700"
+                          value={nationalitySearch}
+                          onChange={(e) => setNationalitySearch(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          autoFocus
+                        />
+                      </div>
+                      <ul className="max-h-52 overflow-y-auto py-1">
+                        {filteredNationalities.length > 0 ? (
+                          filteredNationalities.map((nat) => (
+                            <li
+                              key={nat.id}
+                              className="px-4 py-2 hover:bg-green-50 cursor-pointer text-sm"
+                              onClick={() => {
+                                setNationality(nat.nationality);
+                                setIsNationalityOpen(false);
+                                if (errors.nationality) setErrors({ ...errors, nationality: '' });
+                              }}
+                            >
+                              <div className="flex flex-col">
+                                <span>{nat.nationality}</span>
+                                <span className="text-[10px] text-gray-400 uppercase">{nat.country}</span>
+                              </div>
+                            </li>
+                          ))
+                        ) : (
+                          <li className="px-4 py-2 text-gray-500 text-sm italic">No results found</li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
                   {errors.nationality && <p className="text-red-500 text-sm mt-1">{errors.nationality}</p>}
                 </div>
 

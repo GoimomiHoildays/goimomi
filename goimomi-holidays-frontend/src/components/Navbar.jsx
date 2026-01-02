@@ -43,16 +43,13 @@ const Navbar = () => {
             <a
               href="https://b2b.goimomi.com/"
               className="bg-white text-goimomi-primary rounded-full px-3 py-1 font-medium"
-              target="_blank"
               rel="noopener noreferrer"
             >
               Agent Login
             </a>
             <a
-              href="http://127.0.0.1:8000/admin/"
+              href="/admin/"
               className="bg-white text-goimomi-primary rounded-full px-3 py-1 font-medium"
-              target="_blank"
-              rel="noopener noreferrer"
             >
               Admin Login
             </a>
@@ -348,10 +345,8 @@ const Navbar = () => {
                   Agent Login
                 </a>
                 <a
-                  href="http://127.0.0.1:8000/admin/"
+                  href="/admin/"
                   className="w-full text-center border-2 border-goimomi-primary text-goimomi-primary rounded-lg py-2 font-medium"
-                  target="_blank"
-                  rel="noopener noreferrer"
                   onClick={() => setMobileOpen(false)}
                 >
                   Admin Login

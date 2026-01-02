@@ -51,19 +51,19 @@ const Holidays = () => {
 
   useEffect(() => {
     // Fetch packages
-    fetch("http://127.0.0.1:8000/api/packages/")
+    fetch("/api/packages/")
       .then((res) => res.json())
       .then((data) => setPackages(data))
       .catch((err) => console.error("Error fetching packages:", err));
 
     // Fetch destinations
-    fetch("http://127.0.0.1:8000/api/destinations/")
+    fetch("/api/destinations/")
       .then((res) => res.json())
       .then((data) => setDestinationsList(data))
       .catch((err) => console.error("Error fetching destinations:", err));
 
     // Fetch starting cities
-    fetch("http://127.0.0.1:8000/api/starting-cities/")
+    fetch("/api/starting-cities/")
       .then((res) => res.json())
       .then((data) => setStartingCitiesList(data))
       .catch((err) => console.error("Error fetching starting cities:", err));
@@ -106,7 +106,7 @@ const Holidays = () => {
   const getImageUrl = (path) => {
     if (!path) return "";
     if (path.startsWith("http")) return path;
-    return `http://127.0.0.1:8000${path}`;
+    return `${path}`;
   };
 
   // ===================== FILTERED LIST =====================

@@ -2,48 +2,6 @@ import React, { useState } from "react";
 import axios from "axios";
 import SuccessModal from "../components/SuccessModal";
 
-const NATIONALITIES = [
-  "Afghan", "Albanian", "Algerian", "American", "Andorran", "Angolan", "Anguillan",
-  "Citizen of Antigua and Barbuda", "Argentine", "Armenian", "Australian", "Austrian",
-  "Azerbaijani", "Bahamian", "Bahraini", "Bangladeshi", "Barbadian", "Belarusian",
-  "Belgian", "Belizean", "Beninese", "Bermudian", "Bhutanese", "Bolivian",
-  "Citizen of Bosnia and Herzegovina", "Botswanan", "Brazilian", "British",
-  "British Virgin Islander", "Bruneian", "Bulgarian", "Burkinan", "Burmese",
-  "Burundian", "Cambodian", "Cameroonian", "Canadian", "Cape Verdean",
-  "Cayman Islander", "Central African", "Chadian", "Chilean", "Chinese", "Colombian",
-  "Comoran", "Congolese (Congo)", "Congolese (DRC)", "Cook Islander", "Costa Rican",
-  "Croatian", "Cuban", "Cymraes", "Cymro", "Cypriot", "Czech", "Danish", "Djiboutian",
-  "Dominican", "Citizen of the Dominican Republic", "Dutch", "East Timorese",
-  "Ecuadorean", "Egyptian", "Emirati", "English", "Equatorial Guinean", "Eritrean",
-  "Estonian", "Ethiopian", "Faroese", "Fijian", "Filipino", "Finnish", "French",
-  "Gabonese", "Gambian", "Georgian", "German", "Ghanaian", "Gibraltarian", "Greek",
-  "Greenlandic", "Grenadian", "Guamanian", "Guatemalan", "Citizen of Guinea-Bissau",
-  "Guinean", "Guyanese", "Haitian", "Honduran", "Hong Konger", "Hungarian",
-  "Icelandic", "Indian", "Indonesian", "Iranian", "Iraqi", "Irish", "Israeli",
-  "Italian", "Ivorian", "Jamaican", "Japanese", "Jordanian", "Kazakh", "Kenyan",
-  "Kittitian", "Citizen of Kiribati", "Kosovan", "Kuwaiti", "Kyrgyz", "Lao",
-  "Latvian", "Lebanese", "Liberian", "Libyan", "Liechtenstein citizen", "Lithuanian",
-  "Luxembourger", "Macanese", "Macedonian", "Malagasy", "Malawian", "Malaysian",
-  "Maldivian", "Malian", "Maltese", "Marshallese", "Martiniquais", "Mauritanian",
-  "Mauritian", "Mexican", "Micronesian", "Moldovan", "Monegasque", "Mongolian",
-  "Montenegrin", "Montserratian", "Moroccan", "Mosotho", "Mozambican", "Namibian",
-  "Nauruan", "Nepalese", "New Zealander", "Nicaraguan", "Nigerian", "Nigerien",
-  "Niuean", "North Korean", "Northern Irish", "Norwegian", "Omani", "Pakistani",
-  "Palauan", "Palestinian", "Panamanian", "Papua New Guinean", "Paraguayan",
-  "Peruvian", "Pitcairn Islander", "Polish", "Portuguese", "Prydeinig", "Puerto Rican",
-  "Qatari", "Romanian", "Russian", "Rwandan", "Salvadorean", "Sammarinese", "Samoan",
-  "Sao Tomean", "Saudi Arabian", "Scottish", "Senegalese", "Serbian",
-  "Citizen of Seychelles", "Sierra Leonean", "Singaporean", "Slovak", "Slovenian",
-  "Solomon Islander", "Somali", "South African", "South Korean", "South Sudanese",
-  "Spanish", "Sri Lankan", "St Helenian", "St Lucian", "Stateless", "Sudanese",
-  "Surinamese", "Swazi", "Swedish", "Swiss", "Syrian", "Taiwanese", "Tajik",
-  "Tanzanian", "Thai", "Togolese", "Tongan", "Trinidadian", "Tristanian", "Tunisian",
-  "Turkish", "Turkmen", "Turks and Caicos Islander", "Tuvaluan", "Ugandan",
-  "Ukrainian", "Uruguayan", "Uzbek", "Vatican citizen", "Citizen of Vanuatu",
-  "Venezuelan", "Vietnamese", "Vincentian", "Wallisian", "Welsh", "Yemeni",
-  "Zambian", "Zimbabwean"
-];
-
 const HOLIDAY_TYPES = [
   "Beach", "Nightlife", "Family", "Honeymoon", "Hill Station", "Adventure",
   "Nature", "Snow", "Wildlife", "Desert", "Luxury", "Budget", "Romantic",
@@ -75,23 +33,30 @@ const HolidaysFormModal = ({ isOpen, onClose, packageType }) => {
   // Data from Backend
   const [destinationsList, setDestinationsList] = useState([]);
   const [startingCitiesList, setStartingCitiesList] = useState([]);
+  const [nationalitiesList, setNationalitiesList] = useState([]);
 
   // Dropdown States
   const [activeCityIndex, setActiveCityIndex] = useState(null); // Which row in 'cities' is open
   const [citySearch, setCitySearch] = useState("");
   const [isStartCityOpen, setIsStartCityOpen] = useState(false);
   const [startCitySearch, setStartCitySearch] = useState("");
+  const [isNationalityOpen, setIsNationalityOpen] = useState(false);
+  const [nationalitySearch, setNationalitySearch] = useState("");
 
   // Fetch Data
   React.useEffect(() => {
     if (isOpen) {
-      axios.get("http://127.0.0.1:8000/api/destinations/")
+      axios.get("/api/destinations/")
         .then(res => setDestinationsList(res.data))
         .catch(err => console.error("Error fetching destinations:", err));
 
-      axios.get("http://127.0.0.1:8000/api/starting-cities/")
+      axios.get("/api/starting-cities/")
         .then(res => setStartingCitiesList(res.data))
         .catch(err => console.error("Error fetching starting cities:", err));
+
+      axios.get("/api/nationalities/")
+        .then(res => setNationalitiesList(res.data))
+        .catch(err => console.error("Error fetching nationalities:", err));
     }
   }, [isOpen]);
 
@@ -101,6 +66,7 @@ const HolidaysFormModal = ({ isOpen, onClose, packageType }) => {
       if (!e.target.closest(".custom-dropdown-container")) {
         setActiveCityIndex(null);
         setIsStartCityOpen(false);
+        setIsNationalityOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -114,6 +80,11 @@ const HolidaysFormModal = ({ isOpen, onClose, packageType }) => {
 
   const filteredStartingCities = startingCitiesList.filter(c =>
     c.name.toLowerCase().includes(startCitySearch.toLowerCase())
+  );
+
+  const filteredNationalities = nationalitiesList.filter(n =>
+    n.nationality.toLowerCase().includes(nationalitySearch.toLowerCase()) ||
+    n.country.toLowerCase().includes(nationalitySearch.toLowerCase())
   );
 
   // Step 2 States
@@ -246,7 +217,7 @@ const HolidaysFormModal = ({ isOpen, onClose, packageType }) => {
 
     try {
       const response = await axios.post(
-        'http://127.0.0.1:8000/api/holiday-form/',
+        '/api/holiday-form/',
         payload,
         {
           headers: {
@@ -428,7 +399,7 @@ const HolidaysFormModal = ({ isOpen, onClose, packageType }) => {
               <div className="grid grid-cols-2 gap-6 mb-8">
 
                 <div>
-                  <label className="font-semibold">Leaving From *</label>
+                  <label className="font-semibold">Starting City *</label>
                   <div className="w-full relative custom-dropdown-container">
                     <div
                       className={`border px-3 py-2 rounded w-full bg-white cursor-pointer flex justify-between items-center mt-1 ${errors.startCity ? 'border-red-500' : ''}`}
@@ -488,21 +459,59 @@ const HolidaysFormModal = ({ isOpen, onClose, packageType }) => {
 
                 <div>
                   <label className="font-semibold">Nationality *</label>
-                  <div className="w-full">
-                    <select
-                      className={`border px-3 py-2 rounded w-full ${errors.nationality ? 'border-red-500' : ''}`}
-                      value={nationality}
-                      onChange={(e) => {
-                        setNationality(e.target.value);
-                        if (errors.nationality) setErrors({ ...errors, nationality: '' });
+                  <div className="w-full relative custom-dropdown-container">
+                    <div
+                      className={`border px-3 py-2 rounded w-full bg-white cursor-pointer flex justify-between items-center mt-1 ${errors.nationality ? 'border-red-500' : ''}`}
+                      onClick={() => {
+                        setIsNationalityOpen(!isNationalityOpen);
+                        setNationalitySearch("");
                       }}
                     >
-                      {NATIONALITIES.map((nat) => (
-                        <option key={nat} value={nat}>
-                          {nat}
-                        </option>
-                      ))}
-                    </select>
+                      <span className={nationality ? "text-gray-900" : "text-gray-400"}>
+                        {nationality || "Select Nationality"}
+                      </span>
+                      <svg className={`w-4 h-4 text-gray-400 transition-transform ${isNationalityOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+
+                    {isNationalityOpen && (
+                      <div className="absolute z-50 mt-1 w-full bg-white border rounded shadow-xl overflow-hidden">
+                        <div className="p-2 border-b bg-gray-50">
+                          <input
+                            type="text"
+                            placeholder="Search nationality..."
+                            className="w-full p-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-green-700"
+                            value={nationalitySearch}
+                            onChange={(e) => setNationalitySearch(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            autoFocus
+                          />
+                        </div>
+                        <ul className="max-h-52 overflow-y-auto py-1">
+                          {filteredNationalities.length > 0 ? (
+                            filteredNationalities.map((nat) => (
+                              <li
+                                key={nat.id}
+                                className="px-4 py-2 hover:bg-green-50 cursor-pointer text-sm"
+                                onClick={() => {
+                                  setNationality(nat.nationality);
+                                  setIsNationalityOpen(false);
+                                  if (errors.nationality) setErrors({ ...errors, nationality: '' });
+                                }}
+                              >
+                                <div className="flex flex-col">
+                                  <span>{nat.nationality}</span>
+                                  <span className="text-[10px] text-gray-400 uppercase">{nat.country}</span>
+                                </div>
+                              </li>
+                            ))
+                          ) : (
+                            <li className="px-4 py-2 text-gray-500 text-sm italic">No results found</li>
+                          )}
+                        </ul>
+                      </div>
+                    )}
                     {errors.nationality && <p className="text-red-500 text-sm mt-1">{errors.nationality}</p>}
                   </div>
                 </div>

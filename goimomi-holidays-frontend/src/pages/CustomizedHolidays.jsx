@@ -257,7 +257,7 @@ const CustomizedHolidays = () => {
               📸 Start Planning Your Holiday
             </button>
             <button
-              onClick={() => navigate('/Contact')}
+              onClick={() => navigate('/contact')}
               className="bg-yellow-600 hover:bg-yellow-700 px-8 py-3 text-white rounded-md font-semibold"
             >
               📞 Call Now

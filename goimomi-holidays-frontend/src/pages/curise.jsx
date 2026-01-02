@@ -5,7 +5,7 @@ const Curise = () => {
   return (
     <ComingSoon
       title="Cruise Packages Coming Soon"
-      subtitle="Luxury cruise holiday packages are on the way!"
+      description="Luxury cruise holiday packages are on the way!"
     />
   );
 };
