@@ -26,6 +26,7 @@ const UmrahFormOnly = ({ isOpen, onClose, packageType }) => {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [message, setMessage] = useState("");
   const [errors, setErrors] = useState({});
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [nationalitiesList, setNationalitiesList] = useState([]);
@@ -196,6 +197,9 @@ const UmrahFormOnly = ({ isOpen, onClose, packageType }) => {
       nights: city.nights
     }));
 
+    const totalAdults = roomDetails.reduce((s, r) => s + r.adults, 0);
+    const totalChildren = roomDetails.reduce((s, r) => s + r.children, 0);
+
     const payload = {
       package_type: packageType,
       cities: formattedCities,
@@ -204,6 +208,9 @@ const UmrahFormOnly = ({ isOpen, onClose, packageType }) => {
       nationality: nationality,
       rooms: rooms,
       room_details: roomDetails,
+      adults: totalAdults,
+      children: totalChildren,
+      message: message,
       star_rating: starRating,
       budget: budget,
       full_name: fullName,
@@ -240,6 +247,7 @@ const UmrahFormOnly = ({ isOpen, onClose, packageType }) => {
           setFullName("");
           setEmail("");
           setPhone("");
+          setMessage("");
           setErrors({});
 
           // Close the modal after resetting the form
@@ -280,7 +288,7 @@ const UmrahFormOnly = ({ isOpen, onClose, packageType }) => {
         message="Your Umrah enquiry has been submitted successfully! Our team will contact you shortly."
       />
       <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-        <div className="w-full max-w-4xl bg-white rounded-xl shadow-xl p-8 max-h-[90vh] overflow-y-auto relative">
+        <div className="w-full max-w-2xl bg-white rounded-xl shadow-xl p-6 max-h-[90vh] overflow-y-auto relative">
 
           {/* Close button */}
           <button
@@ -293,7 +301,7 @@ const UmrahFormOnly = ({ isOpen, onClose, packageType }) => {
           {/* STEP 1 FORM */}
           {step === 1 && (
             <>
-              <h2 className="text-2xl font-bold mb-5">Create Customized Proposal</h2>
+              <h2 className="text-xl font-bold mb-4">Create Customized Proposal</h2>
 
               {/* Selected Package */}
               {packageType && (
@@ -305,7 +313,7 @@ const UmrahFormOnly = ({ isOpen, onClose, packageType }) => {
               )}
 
               {/* Destination list */}
-              <div className="space-y-4 mb-8">
+              <div className="space-y-3 mb-6">
                 {cities.map((item, i) => (
                   <div key={i} className="flex gap-3 items-center">
                     <div className="w-full relative custom-dropdown-container">
@@ -388,7 +396,7 @@ const UmrahFormOnly = ({ isOpen, onClose, packageType }) => {
               </div>
 
               {/* Trip details */}
-              <div className="grid grid-cols-2 gap-6 mb-8">
+              <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="w-full relative custom-dropdown-container">
                   <label className="font-semibold">Starting City *</label>
                   <div
@@ -627,7 +635,7 @@ const UmrahFormOnly = ({ isOpen, onClose, packageType }) => {
           {/* STEP 2 FORM */}
           {step === 2 && (
             <>
-              <h2 className="text-2xl font-bold mb-6">Traveler Details</h2>
+              <h2 className="text-xl font-bold mb-4">Traveler Details</h2>
 
               <div className="space-y-5">
                 <div>
@@ -673,6 +681,16 @@ const UmrahFormOnly = ({ isOpen, onClose, packageType }) => {
                     }}
                   />
                   {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
+                </div>
+
+                <div>
+                  <label className="font-semibold">Additional Message</label>
+                  <textarea
+                    placeholder="Tell us more about your preferences..."
+                    className="border px-3 py-2 rounded w-full mt-1 h-32 resize-none"
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                  />
                 </div>
               </div>
 

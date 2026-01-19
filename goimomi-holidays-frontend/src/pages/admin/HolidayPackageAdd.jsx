@@ -14,10 +14,13 @@ const Section = ({ title, children, className = "bg-white border border-gray-300
 );
 
 const Input = (props) => (
-  <input
-    {...props}
-    className={`bg-white border border-gray-300 px-3 py-2 rounded w-full text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#14532d] focus:border-transparent ${props.className || ''}`}
-  />
+  <div>
+    <input
+      {...props}
+      className={`bg-white border ${props.error ? 'border-red-500' : 'border-gray-300'} px-3 py-2 rounded w-full text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#14532d] focus:border-transparent ${props.className || ''}`}
+    />
+    {props.error && <p className="text-red-500 text-[10px] mt-0.5">{props.error}</p>}
+  </div>
 );
 
 const SearchableSelect = ({ options, value, onChange, placeholder = "Select..." }) => {
@@ -100,6 +103,7 @@ const HolidayPackageAdd = () => {
 
   const [inclusions, setInclusions] = useState([""]);
   const [exclusions, setExclusions] = useState([""]);
+  const [highlights, setHighlights] = useState([""]);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -114,6 +118,7 @@ const HolidayPackageAdd = () => {
     price: "",
     header_image: null,
     card_image: null,
+    with_flight: false,
   });
 
   const [startingCities, setStartingCities] = useState([]);
@@ -226,8 +231,39 @@ const HolidayPackageAdd = () => {
     setFormData((prev) => ({ ...prev, [name]: files[0] }));
   };
 
+  const [errors, setErrors] = useState({});
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.title.trim()) newErrors.title = "Title is required";
+    if (!formData.description.trim()) newErrors.description = "Description is required";
+    if (!formData.category) newErrors.category = "Category is required";
+    if (!formData.starting_city) newErrors.starting_city = "Starting city is required";
+    if (!formData.days || formData.days <= 0) newErrors.days = "Days must be greater than 0";
+    if (!formData.offer_price || formData.offer_price <= 0) newErrors.offer_price = "Offer price is required";
+    if (!formData.header_image) newErrors.header_image = "Header image is required";
+    if (!formData.card_image) newErrors.card_image = "Card image is required";
+
+    if (packageDestinations.length === 0) {
+      newErrors.packageDestinations = "At least one destination is required";
+    } else {
+      packageDestinations.forEach((dest, index) => {
+        if (!dest.destination) newErrors[`dest_${index}`] = "Required";
+        if (!dest.nights || dest.nights <= 0) newErrors[`nights_${index}`] = "Required";
+      });
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) {
+      setError("Please fix the errors in the form.");
+      window.scrollTo(0, 0);
+      return;
+    }
     setLoading(true);
     setMessage("");
     setError("");
@@ -246,6 +282,7 @@ const HolidayPackageAdd = () => {
       formDataToSend.append("group_size", formData.group_size);
       formDataToSend.append("Offer_price", formData.offer_price);
       if (formData.price) formDataToSend.append("price", formData.price);
+      formDataToSend.append("with_flight", formData.with_flight);
 
       // Add main images
       if (formData.header_image) {
@@ -259,7 +296,6 @@ const HolidayPackageAdd = () => {
       formDataToSend.append("package_destinations", JSON.stringify(packageDestinations));
 
       // Add itinerary days JSON
-      // Note: We don't verify images here, we send them separately
       const itineraryJson = itineraryDays.map(day => ({
         day: day.day,
         title: day.title,
@@ -275,9 +311,10 @@ const HolidayPackageAdd = () => {
         }
       });
 
-      // Add inclusions and exclusions
-      formDataToSend.append("inclusions", JSON.stringify(inclusions.filter(i => i.trim() !== "")));
-      formDataToSend.append("exclusions", JSON.stringify(exclusions.filter(e => e.trim() !== "")));
+      // Add inclusions, exclusions and highlights
+      formDataToSend.append("inclusions_raw", JSON.stringify(inclusions.filter(i => i.trim() !== "")));
+      formDataToSend.append("exclusions_raw", JSON.stringify(exclusions.filter(e => e.trim() !== "")));
+      formDataToSend.append("highlights_raw", JSON.stringify(highlights.filter(h => h.trim() !== "")));
 
       const response = await axios.post(`${API_BASE_URL}/packages/`, formDataToSend, {
         headers: {
@@ -287,6 +324,7 @@ const HolidayPackageAdd = () => {
 
       if (response.status === 201) {
         setMessage("Holiday package added successfully!");
+        setErrors({});
         // Reset form
         setFormData({
           title: "",
@@ -305,16 +343,21 @@ const HolidayPackageAdd = () => {
         setItineraryDays([{ day: "", title: "", description: "", master_template: "", image: null }]);
         setInclusions([""]);
         setExclusions([""]);
+        setHighlights([""]);
       }
     } catch (err) {
       console.error("Error adding package:", err);
       if (err.response?.data) {
-        const errorMessages = Object.entries(err.response.data)
-          .map(([key, value]) => `${key}: ${value}`)
-          .join(", ");
-        setError(errorMessages);
+        if (typeof err.response.data === 'object') {
+          const errorMessages = Object.entries(err.response.data)
+            .map(([key, value]) => `${key}: ${value}`)
+            .join(", ");
+          setError(errorMessages);
+        } else {
+          setError(`Server Error: ${err.response.status} ${err.response.statusText}`);
+        }
       } else {
-        setError("Failed to add package. Please try again.");
+        setError("Failed to add package. Please check your connection and try again.");
       }
     } finally {
       setLoading(false);
@@ -375,7 +418,7 @@ const HolidayPackageAdd = () => {
                     name="title"
                     value={formData.title}
                     onChange={handleInputChange}
-                    required
+                    error={errors.title}
                   />
                 </label>
 
@@ -385,26 +428,54 @@ const HolidayPackageAdd = () => {
                     name="description"
                     value={formData.description}
                     onChange={handleInputChange}
-                    className="bg-white border border-gray-300 p-3 rounded w-full h-32 text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#14532d] focus:border-transparent"
-                    required
+                    className={`bg-white border ${errors.description ? 'border-red-500' : 'border-gray-300'} p-3 rounded w-full h-32 text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#14532d] focus:border-transparent`}
                   />
+                  {errors.description && <p className="text-red-500 text-[10px] mt-0.5">{errors.description}</p>}
                 </label>
+              </div>
 
+              <div className="flex gap-8 items-end mt-4">
                 <label className="block">
                   <span className="text-gray-700 font-medium mb-1 block">Category:</span>
                   <select
                     name="category"
                     value={formData.category}
                     onChange={handleInputChange}
-                    className="bg-white border border-gray-300 p-2 rounded w-60 text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#14532d] focus:border-transparent"
-                    required
+                    className={`bg-white border ${errors.category ? 'border-red-500' : 'border-gray-300'} p-2 rounded w-60 text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#14532d] focus:border-transparent`}
                   >
                     <option value="">Select category</option>
                     <option value="Domestic">Domestic</option>
                     <option value="International">International</option>
                     <option value="Umrah">Umrah</option>
                   </select>
+                  {errors.category && <p className="text-red-500 text-[10px] mt-0.5">{errors.category}</p>}
                 </label>
+
+                <div className="mb-2">
+                  <span className="text-gray-700 font-medium mb-2 block">Flight:</span>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="with_flight"
+                        checked={formData.with_flight === true}
+                        onChange={() => setFormData({ ...formData, with_flight: true })}
+                        className="w-4 h-4 text-[#14532d] focus:ring-[#14532d]"
+                      />
+                      <span className="text-gray-700">With Flight</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="with_flight"
+                        checked={formData.with_flight === false}
+                        onChange={() => setFormData({ ...formData, with_flight: false })}
+                        className="w-4 h-4 text-[#14532d] focus:ring-[#14532d]"
+                      />
+                      <span className="text-gray-700">Without Flight</span>
+                    </label>
+                  </div>
+                </div>
               </div>
             </Section>
 
@@ -416,8 +487,7 @@ const HolidayPackageAdd = () => {
                   name="starting_city"
                   value={formData.starting_city}
                   onChange={handleInputChange}
-                  className="bg-white border border-gray-300 p-2 rounded w-60 text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#14532d] focus:border-transparent"
-                  required
+                  className={`bg-white border ${errors.starting_city ? 'border-red-500' : 'border-gray-300'} p-2 rounded w-60 text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#14532d] focus:border-transparent`}
                 >
                   <option value="">----------</option>
                   {Object.entries(groupedStartingCities).map(([region, cities]) => (
@@ -430,6 +500,7 @@ const HolidayPackageAdd = () => {
                     </optgroup>
                   ))}
                 </select>
+                {errors.starting_city && <p className="text-red-500 text-[10px] mt-0.5">{errors.starting_city}</p>}
               </label>
             </Section>
 
@@ -443,7 +514,7 @@ const HolidayPackageAdd = () => {
                     name="days"
                     value={formData.days}
                     onChange={handleInputChange}
-                    required
+                    error={errors.days}
                   />
                 </label>
                 <label className="block">
@@ -477,7 +548,7 @@ const HolidayPackageAdd = () => {
                     name="offer_price"
                     value={formData.offer_price}
                     onChange={handleInputChange}
-                    required
+                    error={errors.offer_price}
                   />
                 </label>
                 <label className="block">
@@ -501,7 +572,7 @@ const HolidayPackageAdd = () => {
                   name="header_image"
                   onChange={handleFileChange}
                   accept="image/*"
-                  required
+                  error={errors.header_image}
                 />
               </label>
               <label className="block">
@@ -511,7 +582,7 @@ const HolidayPackageAdd = () => {
                   name="card_image"
                   onChange={handleFileChange}
                   accept="image/*"
-                  required
+                  error={errors.card_image}
                 />
               </label>
             </Section>
@@ -597,7 +668,7 @@ const HolidayPackageAdd = () => {
                     <div className="col-span-1">
                       <input
                         type="number"
-                        placeholder="#"
+                        placeholder="1"
                         value={row.day}
                         onChange={(e) => {
                           const copy = [...itineraryDays];
@@ -758,6 +829,36 @@ const HolidayPackageAdd = () => {
                 className="text-[#14532d] hover:text-[#0f4a24] font-semibold"
               >
                 + Add another Exclusion
+              </button>
+            </Section>
+
+            {/* HIGHLIGHTS */}
+            <Section title="Highlights">
+              {highlights.map((high, i) => (
+                <div key={i} className="flex gap-4 mb-2">
+                  <Input
+                    value={high}
+                    onChange={(e) => {
+                      const copy = [...highlights];
+                      copy[i] = e.target.value;
+                      setHighlights(copy);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeRow(setHighlights, i)}
+                    className="text-red-600 hover:text-red-800 font-bold whitespace-nowrap"
+                  >
+                    ✖ Remove
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => addRow(setHighlights, "")}
+                className="text-[#14532d] hover:text-[#0f4a24] font-semibold"
+              >
+                + Add another Highlight
               </button>
             </Section>
 
