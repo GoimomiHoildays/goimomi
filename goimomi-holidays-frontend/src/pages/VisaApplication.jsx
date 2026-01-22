@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { CheckCircle, Upload, ChevronDown, Check, User, Info, FileText, Image as ImageIcon, Trash2, X } from "lucide-react";
+import { CheckCircle, Upload, ChevronDown, Check, User, Info, FileText, Image as ImageIcon, Trash2, X, Plus } from "lucide-react";
+import PhoneInput from "react-phone-input-2";
+import "react-phone-input-2/lib/style.css";
 
 const VisaApplication = () => {
     const { id } = useParams();
@@ -37,6 +39,7 @@ const VisaApplication = () => {
     const [applicants, setApplicants] = useState([{
         first_name: "",
         last_name: "",
+        phone: "",
         passport_number: "",
         nationality: citizenOf,
         sex: "",
@@ -49,7 +52,8 @@ const VisaApplication = () => {
         passport_front: null,
         photo: null,
         passport_front_preview: null,
-        photo_preview: null
+        photo_preview: null,
+        additional_documents: []
     }]);
 
     const [errors, setErrors] = useState({});
@@ -112,10 +116,36 @@ const VisaApplication = () => {
         setApplicants(updated);
     };
 
+    const addAdditionalDocument = (applicantIndex) => {
+        const updated = [...applicants];
+        updated[applicantIndex].additional_documents.push({
+            id: Date.now() + Math.random(),
+            file: null,
+            preview: null
+        });
+        setApplicants(updated);
+    };
+
+    const removeAdditionalDocument = (applicantIndex, docIndex) => {
+        const updated = [...applicants];
+        updated[applicantIndex].additional_documents.splice(docIndex, 1);
+        setApplicants(updated);
+    };
+
+    const handleAdditionalFileChange = (applicantIndex, docIndex, file) => {
+        if (file) {
+            const updated = [...applicants];
+            updated[applicantIndex].additional_documents[docIndex].file = file;
+            updated[applicantIndex].additional_documents[docIndex].preview = URL.createObjectURL(file);
+            setApplicants(updated);
+        }
+    };
+
     const addApplicant = () => {
         setApplicants([...applicants, {
             first_name: "",
             last_name: "",
+            phone: "",
             passport_number: "",
             nationality: citizenOf,
             sex: "",
@@ -128,7 +158,8 @@ const VisaApplication = () => {
             passport_front: null,
             photo: null,
             passport_front_preview: null,
-            photo_preview: null
+            photo_preview: null,
+            additional_documents: []
         }]);
     };
 
@@ -165,6 +196,12 @@ const VisaApplication = () => {
             // First Name
             if (!applicant.first_name.trim()) {
                 newErrors[`applicant_${index}_first_name`] = "First name is required";
+                isValid = false;
+            }
+
+            // Phone
+            if (!applicant.phone || applicant.phone.trim().length < 5) {
+                newErrors[`applicant_${index}_phone`] = "Invalid phone number";
                 isValid = false;
             }
 
@@ -281,6 +318,13 @@ const VisaApplication = () => {
                 if (applicant.photo) {
                     formData.append(`applicant_${index}_photo`, applicant.photo);
                 }
+
+                // Append additional documents
+                applicant.additional_documents.forEach((doc, docIndex) => {
+                    if (doc.file) {
+                        formData.append(`applicant_${index}_additional_doc_${docIndex}`, doc.file);
+                    }
+                });
             });
 
             await axios.post("/api/visa-applications/", formData, {
@@ -371,10 +415,10 @@ const VisaApplication = () => {
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 p-4 md:p-8 max-w-5xl mx-auto w-full">
+            <main className="flex-1 p-4 md:p-6 max-w-4xl mx-auto w-full">
 
                 {/* Header Actions */}
-                <div className="flex justify-end gap-4 mb-8">
+                <div className="flex justify-end gap-3 mb-6">
                     <button
                         onClick={addApplicant}
                         className="px-4 py-2 text-[#14532d] border border-[#14532d] rounded-full font-medium hover:bg-green-50 text-sm flex items-center gap-2"
@@ -394,13 +438,13 @@ const VisaApplication = () => {
                 <div className="space-y-8">
 
                     {/* Section 1: Application Type */}
-                    <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
-                        <h2 className="text-xl font-bold text-gray-900 mb-6">Are You Applying For</h2>
+                    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                        <h2 className="text-lg font-bold text-gray-900 mb-4">Are You Applying For</h2>
 
-                        <div className="flex gap-4 mb-8">
+                        <div className="flex gap-3 mb-6">
                             <button
                                 onClick={() => setApplicationType("Individual")}
-                                className={`px-12 py-3 rounded-full font-semibold transition-all ${applicationType === "Individual"
+                                className={`px-8 py-2 rounded-full font-semibold transition-all text-sm ${applicationType === "Individual"
                                     ? "bg-[#14532d] text-white shadow-md"
                                     : "bg-white border border-gray-200 text-gray-500"
                                     }`}
@@ -410,7 +454,7 @@ const VisaApplication = () => {
                             </button>
                             <button
                                 onClick={() => setApplicationType("Group")}
-                                className={`px-12 py-3 rounded-full font-semibold transition-all ${applicationType === "Group"
+                                className={`px-8 py-2 rounded-full font-semibold transition-all text-sm ${applicationType === "Group"
                                     ? "bg-[#14532d] text-white shadow-md"
                                     : "bg-white border border-gray-200 text-gray-500"
                                     }`}
@@ -420,12 +464,12 @@ const VisaApplication = () => {
                             </button>
                         </div>
 
-                        <div className="grid md:grid-cols-2 gap-8">
+                        <div className="grid md:grid-cols-2 gap-4 text-sm">
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 mb-2">Internal ID</label>
                                 <input
                                     type="text"
-                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#14532d] outline-none transition-colors bg-gray-50/50"
+                                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:border-[#14532d] outline-none transition-colors bg-gray-50/50 text-sm"
                                     value={internalId}
                                     onChange={(e) => setInternalId(e.target.value)}
                                 />
@@ -434,20 +478,20 @@ const VisaApplication = () => {
                                 <label className="block text-xs font-semibold text-gray-500 mb-2">Group Name</label>
                                 <input
                                     type="text"
-                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#14532d] outline-none transition-colors bg-gray-50/50"
+                                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:border-[#14532d] outline-none transition-colors bg-gray-50/50 text-sm"
                                     value={groupName}
                                     onChange={(e) => setGroupName(e.target.value)}
                                 />
                             </div>
                         </div>
 
-                        <div className="mt-6">
+                        <div className="mt-4">
                             <label className="block text-xs font-semibold text-gray-500 mb-2">Visa Type</label>
                             <div className="relative">
                                 <select
                                     value={selectedVisaType}
                                     onChange={(e) => setSelectedVisaType(e.target.value)}
-                                    className="w-full px-4 py-3 rounded-xl border border-[#14532d] text-gray-900 appearance-none bg-white font-medium outline-none focus:ring-1 focus:ring-[#14532d]"
+                                    className="w-full px-3 py-2 rounded-xl border border-[#14532d] text-gray-900 appearance-none bg-white font-medium outline-none focus:ring-1 focus:ring-[#14532d] text-sm"
                                     style={{ borderColor: '#14532d' }}
                                 >
                                     <option>{visa.title}</option>
@@ -462,9 +506,9 @@ const VisaApplication = () => {
 
                     {/* Travelers Forms */}
                     {applicants.map((applicant, index) => (
-                        <div key={index} className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
-                            <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-8">
-                                <h2 className="text-2xl font-bold text-gray-900">Traveler {index + 1}</h2>
+                        <div key={index} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                            <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-6">
+                                <h2 className="text-xl font-bold text-gray-900">Traveler {index + 1}</h2>
                                 {applicants.length > 1 && (
                                     <button
                                         onClick={() => removeApplicant(index)}
@@ -476,13 +520,13 @@ const VisaApplication = () => {
                             </div>
 
                             {/* Passport Upload */}
-                            <div className="mb-10">
-                                <h3 className="text-lg font-bold text-gray-900 mb-2">Upload Traveler's Front Passport Page</h3>
+                            <div className="mb-8">
+                                <h3 className="text-md font-bold text-gray-900 mb-1">Upload Traveler's Front Passport Page</h3>
                                 <p className="text-sm text-gray-500 mb-6 leading-relaxed max-w-3xl">
                                     Vietnam requires a scan of the traveler's passport. Upload a clear passport image and your details will be filled automatically. However, it is mandatory to review the information before submitting to ensure there are no mistakes.
                                 </p>
 
-                                <div className={`border-2 border-dashed ${errors[`applicant_${index}_passport_front`] ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-2xl p-8 text-center hover:bg-gray-50 transition-colors w-full md:w-2/3 relative group cursor-pointer`}>
+                                <div className={`border-2 border-dashed ${errors[`applicant_${index}_passport_front`] ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-2xl p-6 text-center hover:bg-gray-50 transition-colors w-full md:w-2/3 relative group cursor-pointer`}>
                                     <input
                                         type="file"
                                         accept="image/*,application/pdf"
@@ -524,13 +568,13 @@ const VisaApplication = () => {
                             </div>
 
                             {/* Manual Form Fields */}
-                            <div className="grid md:grid-cols-2 gap-6 mb-10 border-t border-gray-100 pt-8">
+                            <div className="grid md:grid-cols-2 gap-4 mb-8 border-t border-gray-100 pt-6 text-sm">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-900 mb-1.5 ">Passport Number <span className="text-red-500">*</span></label>
                                     <input
                                         type="text"
                                         required
-                                        className={`w-full px-4 py-3 rounded-xl border ${errors[`applicant_${index}_passport_number`] ? 'border-red-500' : 'border-gray-200'} outline-none focus:border-[#14532d] transition-colors`}
+                                        className={`w-full px-3 py-2 rounded-xl border ${errors[`applicant_${index}_passport_number`] ? 'border-red-500' : 'border-gray-200'} outline-none focus:border-[#14532d] transition-colors text-sm`}
                                         value={applicant.passport_number}
                                         onChange={(e) => handleApplicantChange(index, "passport_number", e.target.value)}
                                     />
@@ -543,27 +587,46 @@ const VisaApplication = () => {
                                     <input
                                         type="text"
                                         required
-                                        className={`w-full px-4 py-3 rounded-xl border ${errors[`applicant_${index}_first_name`] ? 'border-red-500' : 'border-gray-200'} outline-none focus:border-[#14532d] transition-colors`}
+                                        className={`w-full px-3 py-2 rounded-xl border ${errors[`applicant_${index}_first_name`] ? 'border-red-500' : 'border-gray-200'} outline-none focus:border-[#14532d] transition-colors text-sm`}
                                         value={applicant.first_name}
                                         onChange={(e) => handleApplicantChange(index, "first_name", e.target.value)}
                                     />
                                     {errors[`applicant_${index}_first_name`] && <p className="text-red-500 text-xs mt-1">{errors[`applicant_${index}_first_name`]}</p>}
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-900 mb-1.5">Last Name</label>
+                                    <label className="block text-xs font-bold text-gray-900 mb-1.5 ">Last Name</label>
                                     <input
                                         type="text"
-                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-[#14532d] transition-colors"
+                                        className="w-full px-3 py-2 rounded-xl border border-gray-200 outline-none focus:border-[#14532d] transition-colors text-sm"
                                         value={applicant.last_name}
                                         onChange={(e) => handleApplicantChange(index, "last_name", e.target.value)}
                                     />
                                 </div>
 
                                 <div>
+                                    <label className="block text-xs font-bold text-gray-900 mb-1.5">Phone Number <span className="text-red-500">*</span></label>
+                                    <div className="mt-1">
+                                        <PhoneInput
+                                            country={"in"}
+                                            value={applicant.phone}
+                                            onChange={(phone) => handleApplicantChange(index, "phone", phone)}
+                                            inputProps={{
+                                                name: `phone_${index}`,
+                                                required: true,
+                                            }}
+                                            containerClass="!w-full"
+                                            inputClass={`!w-full !px-3 !py-2 !rounded-xl !border ${errors[`applicant_${index}_phone`] ? '!border-red-500' : '!border-gray-200'} !outline-none focus:!border-[#14532d] !transition-colors !text-sm !h-[38px]`}
+                                            buttonClass="!bg-white !border !border-gray-200 !rounded-l-xl"
+                                        />
+                                    </div>
+                                    {errors[`applicant_${index}_phone`] && <p className="text-red-500 text-xs mt-1">{errors[`applicant_${index}_phone`]}</p>}
+                                </div>
+
+                                <div>
                                     <label className="block text-xs font-bold text-gray-900 mb-1.5">Nationality <span className="text-red-500">*</span></label>
                                     <select
                                         required
-                                        className={`w-full px-4 py-3 rounded-xl border ${errors[`applicant_${index}_nationality`] ? 'border-red-500' : 'border-gray-200'} outline-none focus:border-[#14532d] transition-colors bg-white`}
+                                        className={`w-full px-3 py-2 rounded-xl border ${errors[`applicant_${index}_nationality`] ? 'border-red-500' : 'border-gray-200'} outline-none focus:border-[#14532d] transition-colors bg-white text-sm`}
                                         value={applicant.nationality}
                                         onChange={(e) => handleApplicantChange(index, "nationality", e.target.value)}
                                     >
@@ -579,7 +642,7 @@ const VisaApplication = () => {
                                         <label className="block text-xs font-bold text-gray-900 mb-1.5">Sex <span className="text-red-500">*</span></label>
                                         <select
                                             required
-                                            className={`w-full px-4 py-3 rounded-xl border ${errors[`applicant_${index}_sex`] ? 'border-red-500' : 'border-gray-200'} outline-none focus:border-[#14532d] transition-colors bg-white`}
+                                            className={`w-full px-3 py-2 rounded-xl border ${errors[`applicant_${index}_sex`] ? 'border-red-500' : 'border-gray-200'} outline-none focus:border-[#14532d] transition-colors bg-white text-sm`}
                                             value={applicant.sex}
                                             onChange={(e) => handleApplicantChange(index, "sex", e.target.value)}
                                         >
@@ -594,7 +657,7 @@ const VisaApplication = () => {
                                         <input
                                             type="date"
                                             required
-                                            className={`w-full px-4 py-3 rounded-xl border ${errors[`applicant_${index}_dob`] ? 'border-red-500' : 'border-gray-200'} outline-none focus:border-[#14532d] transition-colors text-gray-500 uppercase`}
+                                            className={`w-full px-3 py-2 rounded-xl border ${errors[`applicant_${index}_dob`] ? 'border-red-500' : 'border-gray-200'} outline-none focus:border-[#14532d] transition-colors text-gray-500 uppercase text-sm`}
                                             value={applicant.dob}
                                             onChange={(e) => handleApplicantChange(index, "dob", e.target.value)}
                                         />
@@ -607,7 +670,7 @@ const VisaApplication = () => {
                                     <input
                                         type="text"
                                         required
-                                        className={`w-full px-4 py-3 rounded-xl border ${errors[`applicant_${index}_place_of_birth`] ? 'border-red-500' : 'border-gray-200'} outline-none focus:border-[#14532d] transition-colors`}
+                                        className={`w-full px-3 py-2 rounded-xl border ${errors[`applicant_${index}_place_of_birth`] ? 'border-red-500' : 'border-gray-200'} outline-none focus:border-[#14532d] transition-colors text-sm`}
                                         value={applicant.place_of_birth}
                                         onChange={(e) => handleApplicantChange(index, "place_of_birth", e.target.value)}
                                     />
@@ -618,7 +681,7 @@ const VisaApplication = () => {
                                     <input
                                         type="text"
                                         required
-                                        className={`w-full px-4 py-3 rounded-xl border ${errors[`applicant_${index}_place_of_issue`] ? 'border-red-500' : 'border-gray-200'} outline-none focus:border-[#14532d] transition-colors`}
+                                        className={`w-full px-3 py-2 rounded-xl border ${errors[`applicant_${index}_place_of_issue`] ? 'border-red-500' : 'border-gray-200'} outline-none focus:border-[#14532d] transition-colors text-sm`}
                                         value={applicant.place_of_issue}
                                         onChange={(e) => handleApplicantChange(index, "place_of_issue", e.target.value)}
                                     />
@@ -630,7 +693,7 @@ const VisaApplication = () => {
                                         <label className="block text-xs font-bold text-gray-900 mb-1.5">Marital Status <span className="text-red-500">*</span></label>
                                         <select
                                             required
-                                            className={`w-full px-4 py-3 rounded-xl border ${errors[`applicant_${index}_marital_status`] ? 'border-red-500' : 'border-gray-200'} outline-none focus:border-[#14532d] transition-colors bg-white`}
+                                            className={`w-full px-3 py-2 rounded-xl border ${errors[`applicant_${index}_marital_status`] ? 'border-red-500' : 'border-gray-200'} outline-none focus:border-[#14532d] transition-colors bg-white text-sm`}
                                             value={applicant.marital_status}
                                             onChange={(e) => handleApplicantChange(index, "marital_status", e.target.value)}
                                         >
@@ -645,7 +708,7 @@ const VisaApplication = () => {
                                         <input
                                             type="date"
                                             required
-                                            className={`w-full px-4 py-3 rounded-xl border ${errors[`applicant_${index}_date_of_issue`] ? 'border-red-500' : 'border-gray-200'} outline-none focus:border-[#14532d] transition-colors text-gray-500 uppercase`}
+                                            className={`w-full px-3 py-2 rounded-xl border ${errors[`applicant_${index}_date_of_issue`] ? 'border-red-500' : 'border-gray-200'} outline-none focus:border-[#14532d] transition-colors text-gray-500 uppercase text-sm`}
                                             value={applicant.date_of_issue}
                                             onChange={(e) => handleApplicantChange(index, "date_of_issue", e.target.value)}
                                         />
@@ -656,7 +719,7 @@ const VisaApplication = () => {
                                         <input
                                             type="date"
                                             required
-                                            className={`w-full px-4 py-3 rounded-xl border ${errors[`applicant_${index}_date_of_expiry`] ? 'border-red-500' : 'border-gray-200'} outline-none focus:border-[#14532d] transition-colors text-gray-500 uppercase`}
+                                            className={`w-full px-3 py-2 rounded-xl border ${errors[`applicant_${index}_date_of_expiry`] ? 'border-red-500' : 'border-gray-200'} outline-none focus:border-[#14532d] transition-colors text-gray-500 uppercase text-sm`}
                                             value={applicant.date_of_expiry}
                                             onChange={(e) => handleApplicantChange(index, "date_of_expiry", e.target.value)}
                                         />
@@ -667,12 +730,12 @@ const VisaApplication = () => {
 
                             {/* Photo Upload */}
                             <div>
-                                <h3 className="text-lg font-bold text-gray-900 mb-2">Upload Traveler Photo</h3>
+                                <h3 className="text-md font-bold text-gray-900 mb-1">Upload Traveler Photo</h3>
                                 <p className="text-sm text-gray-500 mb-6 leading-relaxed max-w-3xl">
                                     Vietnam requires a passport-sized photo of the traveler. You can upload a selfie of the traveler.
                                 </p>
 
-                                <div className={`border-2 border-dashed ${errors[`applicant_${index}_photo`] ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-2xl p-8 text-center hover:bg-gray-50 transition-colors w-full md:w-1/2 relative group cursor-pointer`}>
+                                <div className={`border-2 border-dashed ${errors[`applicant_${index}_photo`] ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-2xl p-6 text-center hover:bg-gray-50 transition-colors w-full md:w-1/2 relative group cursor-pointer`}>
                                     <input
                                         type="file"
                                         accept="image/*"
@@ -709,7 +772,90 @@ const VisaApplication = () => {
                                         </>
                                     )}
                                 </div>
-                                {errors[`applicant_${index}_photo`] && <p className="text-red-500 text-xs mt-2">{errors[`applicant_${index}_photo`]}</p>}
+                            </div>
+
+                            {/* Additional Documents */}
+                            <div className="mt-10 border-t border-gray-100 pt-8">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-lg font-bold text-gray-900">Additional Documents</h3>
+                                    <button
+                                        onClick={() => addAdditionalDocument(index)}
+                                        className="text-[#14532d] font-medium text-sm flex items-center gap-1 hover:bg-green-50 px-3 py-1.5 rounded-lg transition-colors border border-[#14532d]"
+                                    >
+                                        <Plus size={16} /> Add Document
+                                    </button>
+                                </div>
+                                <p className="text-sm text-gray-500 mb-6 leading-relaxed max-w-3xl">
+                                    If you have any other supporting documents (e.g., flight tickets, hotel bookings, etc.), you can upload them here.
+                                </p>
+
+                                <div className="space-y-6">
+                                    {applicant.additional_documents.map((doc, docIndex) => (
+                                        <div key={doc.id} className="relative">
+                                            {/* Header with Remove button */}
+                                            <div className="flex justify-between items-center mb-2">
+                                                <span className="text-sm font-semibold text-gray-700">Document {docIndex + 1}</span>
+                                                <button
+                                                    onClick={() => removeAdditionalDocument(index, docIndex)}
+                                                    className="text-red-500 hover:text-red-700 text-xs flex items-center gap-1"
+                                                >
+                                                    <Trash2 size={14} /> Remove Slot
+                                                </button>
+                                            </div>
+
+                                            <div className={`border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center hover:bg-gray-50 transition-colors w-full md:w-1/2 relative group cursor-pointer`}>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*,application/pdf"
+                                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                    onChange={(e) => handleAdditionalFileChange(index, docIndex, e.target.files[0])}
+                                                />
+                                                {doc.preview ? (
+                                                    <div className="relative">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                e.preventDefault();
+                                                                // Clear the file but keep the slot
+                                                                const updated = [...applicants];
+                                                                updated[index].additional_documents[docIndex].file = null;
+                                                                updated[index].additional_documents[docIndex].preview = null;
+                                                                setApplicants(updated);
+                                                            }}
+                                                            className="absolute top-2 right-2 z-10 p-1.5 bg-white rounded-full shadow-md text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors border border-gray-200"
+                                                            title="Remove file"
+                                                            type="button"
+                                                        >
+                                                            <X size={16} />
+                                                        </button>
+                                                        {doc.file?.type?.includes('pdf') ? (
+                                                            <div className="h-40 flex items-center justify-center bg-gray-100 rounded-lg">
+                                                                <FileText size={48} className="text-gray-400" />
+                                                            </div>
+                                                        ) : (
+                                                            <img src={doc.preview} alt="Document Preview" className="h-40 mx-auto object-cover rounded-lg shadow-sm" />
+                                                        )}
+                                                        <div className="mt-2 text-[#14532d] font-semibold text-sm flex items-center justify-center gap-2">
+                                                            <CheckCircle size={16} /> File Selected: {doc.file.name}
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4 text-[#14532d]">
+                                                            <FileText size={24} />
+                                                        </div>
+                                                        <h4 className="font-semibold text-gray-900 mb-1">Drag and drop files to upload</h4>
+                                                        <p className="text-gray-400 text-sm mb-4">or</p>
+                                                        <button className="px-6 py-2 bg-[#14532d] text-white rounded-lg text-sm font-semibold">Select file</button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {applicant.additional_documents.length === 0 && (
+                                        <div className="text-sm text-gray-400 italic">No additional documents added.</div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     ))}

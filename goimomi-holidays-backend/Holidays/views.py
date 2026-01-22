@@ -75,8 +75,18 @@ class HolidayPackageViewSet(ModelViewSet):
 
     def get_queryset(self):
         queryset = HolidayPackage.objects.all()
-        with_flight = self.request.query_params.get('with_flight', None)
         
+        # Admin can pass ?all=true to see both active and inactive in lists
+        is_all = self.request.query_params.get('all', 'false').lower() == 'true'
+        
+        # In list view, we usually filter by is_active unless 'all=true' is passed
+        if self.action == 'list' and not is_all:
+            queryset = queryset.filter(is_active=True)
+
+        # For other actions (retrieve, update, etc.), we want the full queryset
+        # so we can manage inactive items.
+
+        with_flight = self.request.query_params.get('with_flight', None)
         if with_flight is not None:
              if with_flight.lower() == 'true':
                  queryset = queryset.filter(with_flight=True)
@@ -113,8 +123,6 @@ class ItineraryMasterViewSet(ModelViewSet):
 from django.contrib.auth.models import User
 
 class UserViewSet(ModelViewSet):
-    authentication_classes = []
-    permission_classes = [AllowAny]
     queryset = User.objects.all()
     serializer_class = UserSerializer
     pagination_class = None
@@ -145,10 +153,27 @@ class VisaViewSet(ModelViewSet):
     pagination_class = None
 
     def get_queryset(self):
-        queryset = Visa.objects.filter(is_active=True)
+        queryset = Visa.objects.all()
+        
+        is_all = self.request.query_params.get('all', 'false').lower() == 'true'
+        
+        # In list view, we filter by is_active unless 'all=true' is passed
+        if self.action == 'list' and not is_all:
+            queryset = queryset.filter(is_active=True)
+        # For other actions (retrieve, update, etc.), we want the full queryset
+        elif self.action != 'list':
+            return queryset
+
         country = self.request.query_params.get('country', None)
+        
+        if is_all:
+            return queryset
+            
+        # Default for users
+        queryset = queryset.filter(is_active=True)
         if country:
             queryset = queryset.filter(country__iexact=country)
+            
         return queryset
 
 

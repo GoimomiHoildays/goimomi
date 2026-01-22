@@ -66,7 +66,9 @@ class UmrahEnquiry(models.Model):
 
 class Enquiry(models.Model):
     name = models.CharField(max_length=100)
+    email = models.EmailField(blank=True, null=True)
     phone = models.CharField(max_length=20)
+    purpose = models.TextField(blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -94,6 +96,7 @@ class HolidayPackage(models.Model):
     header_image = models.ImageField(upload_to="packages/headers/")
     card_image = models.ImageField(upload_to="packages/cards/")
 
+    is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -193,13 +196,20 @@ class StartingCity(models.Model):
 
 
 class ItineraryMaster(models.Model):
+    destination = models.ForeignKey(
+        'Destination',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="itinerary_templates"
+    )
     name = models.CharField(max_length=200, help_text="A unique name to identify this template (e.g., 'Goa Arrival')")
     title = models.CharField(max_length=200, help_text="The title that will appear in the package (e.g., 'Arrival and Check-in')")
     description = models.TextField()
     image = models.ImageField(upload_to="itinerary_master/", blank=True, null=True)
 
     def __str__(self):
-        return self.name
+        return f"{self.destination.name if self.destination else 'Global'} - {self.name}"
 
 
 class Nationality(models.Model):
@@ -250,6 +260,11 @@ class Visa(models.Model):
     processing_time = models.CharField(max_length=100)
     price = models.IntegerField()
     documents_required = models.TextField(blank=True, help_text="Comma-separated list")
+    VISA_TYPES = [
+        ('Paper Visa', 'Paper Visa'),
+        ('Sticker Visa', 'Sticker Visa'),
+    ]
+    visa_type = models.CharField(max_length=50, choices=VISA_TYPES, default='Paper Visa')
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -309,6 +324,7 @@ class VisaApplicant(models.Model):
     place_of_birth = models.CharField(max_length=100)
     place_of_issue = models.CharField(max_length=100)
     marital_status = models.CharField(max_length=20, choices=MARITAL_STATUS_CHOICES)
+    phone = models.CharField(max_length=20, blank=True, null=True)
     date_of_issue = models.DateField()
     date_of_expiry = models.DateField()
     passport_front = models.ImageField(upload_to='visa_apps/passports/')
