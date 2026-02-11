@@ -4,6 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import AdminTopbar from "../../components/admin/AdminTopbar";
 import SearchableSelect from "../../components/admin/SearchableSelect";
+import { X } from "lucide-react";
 
 /* ---------- UI helpers (same as Add) ---------- */
 const Section = ({ title, children, className = "bg-white border border-gray-300 p-3" }) => (
@@ -50,6 +51,7 @@ const HolidayPackageEdit = () => {
         header_image: null,
         card_image: null,
         with_flight: false,
+        is_active: true,
     });
 
     // Previews for existing images to show if no new file selected
@@ -146,6 +148,7 @@ const HolidayPackageEdit = () => {
                     header_image: null, // Keep null unless changing
                     card_image: null,
                     with_flight: pkg.with_flight || false,
+                    is_active: pkg.is_active !== undefined ? pkg.is_active : true,
                 });
 
                 // Set Previews
@@ -292,30 +295,25 @@ const HolidayPackageEdit = () => {
 
     const validateForm = () => {
         const newErrors = {};
-        if (!formData.title.trim()) newErrors.title = "Title is required";
-        if (!formData.description.trim()) newErrors.description = "Description is required";
-        if (!formData.category) newErrors.category = "Category is required";
-        if (!formData.starting_city) newErrors.starting_city = "Starting city is required";
-        if (!formData.days || formData.days <= 0) newErrors.days = "Days must be greater than 0";
-        if (!formData.offer_price || formData.offer_price <= 0) newErrors.offer_price = "Offer price is required";
+        if (!formData.title?.trim()) newErrors.title = "Package title is required";
+        if (!formData.description?.trim()) newErrors.description = "Package description is required";
+        if (!formData.category) newErrors.category = "Please select a category";
+        if (!formData.starting_city) newErrors.starting_city = "Please select a starting city";
+        if (!formData.days || parseInt(formData.days) <= 0) newErrors.days = "Duration (days) must be at least 1";
+        if (!formData.offer_price || parseFloat(formData.offer_price) <= 0) newErrors.offer_price = "Offer price must be greater than 0";
 
-        // Note: images NOT required in Edit if they already exist (previews exist)
-        if (!formData.header_image && !headerPreview) newErrors.header_image = "Header image is required";
-        if (!formData.card_image && !cardPreview) newErrors.card_image = "Card image is required";
-
-        if (packageDestinations.length === 0) {
-            newErrors.packageDestinations = "At least one destination is required";
+        if (packageDestinations.length === 0 && parseInt(formData.days) > 1) {
+            newErrors.packageDestinations = "At least one destination night is required";
         } else {
             packageDestinations.forEach((dest, index) => {
-                if (!dest.destination) newErrors[`dest_${index}`] = "Required";
-                if (!dest.nights || dest.nights <= 0) newErrors[`nights_${index}`] = "Required";
+                if (!dest.destination) newErrors[`dest_${index}`] = "City required";
             });
         }
 
         // Itinerary validations
         itineraryDays.forEach((day, index) => {
             if (!day.title || !day.title.trim()) {
-                newErrors[`itinerary_title_${index}`] = "Title required";
+                newErrors[`itinerary_title_${index}`] = "Itinerary title required (e.g. Arrival)";
             }
         });
 
@@ -349,13 +347,19 @@ const HolidayPackageEdit = () => {
             formDataToSend.append("Offer_price", formData.offer_price);
             if (formData.price) formDataToSend.append("price", formData.price);
             formDataToSend.append("with_flight", formData.with_flight);
+            formDataToSend.append("is_active", formData.is_active);
 
-            // Add main images ONLY if new file selected
+            // Add main images ONLY if new file selected or explicitly cleared
             if (formData.header_image instanceof File) {
                 formDataToSend.append("header_image", formData.header_image);
+            } else if (!headerPreview) {
+                formDataToSend.append("header_image", "");
             }
+
             if (formData.card_image instanceof File) {
                 formDataToSend.append("card_image", formData.card_image);
+            } else if (!cardPreview) {
+                formDataToSend.append("card_image", "");
             }
 
             // Add package destinations
@@ -428,7 +432,7 @@ const HolidayPackageEdit = () => {
 
     if (loading) {
         return (
-            <div className="flex bg-gray-100 min-h-screen">
+            <div className="flex bg-gray-100 h-full overflow-hidden">
                 <AdminSidebar />
                 <div className="flex-1 p-10 flex justify-center items-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-700"></div>
@@ -438,13 +442,13 @@ const HolidayPackageEdit = () => {
     }
 
     return (
-        <div className="flex bg-gray-100 min-h-screen">
+        <div className="flex bg-gray-100 h-full overflow-hidden">
             <AdminSidebar />
 
-            <div className="flex-1">
+            <div className="flex-1 flex flex-col h-full overflow-hidden">
                 <AdminTopbar />
 
-                <div className="p-4">
+                <div className="flex-1 overflow-y-auto p-4">
                     <div className="flex justify-between items-center mb-4 bg-white p-4 rounded-lg shadow-sm">
                         <div>
                             <h1 className="text-xl font-bold text-gray-800 mb-1">Edit Holiday Package</h1>
@@ -537,6 +541,32 @@ const HolidayPackageEdit = () => {
                                         </label>
                                     </div>
                                 </div>
+
+                                <div className="mb-2">
+                                    <span className="text-gray-700 font-medium mb-2 block">Status:</span>
+                                    <div className="flex gap-4">
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="is_active"
+                                                checked={formData.is_active === true}
+                                                onChange={() => setFormData({ ...formData, is_active: true })}
+                                                className="w-4 h-4 text-[#14532d] focus:ring-[#14532d]"
+                                            />
+                                            <span className="text-gray-700">Active</span>
+                                        </label>
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="is_active"
+                                                checked={formData.is_active === false}
+                                                onChange={() => setFormData({ ...formData, is_active: false })}
+                                                className="w-4 h-4 text-[#14532d] focus:ring-[#14532d]"
+                                            />
+                                            <span className="text-gray-700">Inactive</span>
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
                         </Section>
 
@@ -619,35 +649,69 @@ const HolidayPackageEdit = () => {
                                 <label className="block">
                                     <span className="text-gray-700 font-medium mb-1 block">Header image:</span>
                                     {headerPreview && (
-                                        <div className="mb-2">
+                                        <div className="mb-2 relative inline-block group">
                                             <img src={headerPreview} alt="Header Preview" className="h-32 object-cover rounded border" />
-                                            <p className="text-xs text-gray-500">Current Image</p>
+                                            <button
+                                                type="button"
+                                                onClick={() => { setHeaderPreview(null); setFormData({ ...formData, header_image: null }); }}
+                                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                                                title="Remove image"
+                                            >
+                                                <X size={12} />
+                                            </button>
                                         </div>
                                     )}
-                                    <Input
-                                        type="file"
-                                        name="header_image"
-                                        onChange={handleFileChange}
-                                        accept="image/*"
-                                        error={errors.header_image}
-                                    />
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            type="file"
+                                            name="header_image"
+                                            onChange={(e) => {
+                                                handleFileChange(e);
+                                                if (e.target.files[0]) {
+                                                    setHeaderPreview(URL.createObjectURL(e.target.files[0]));
+                                                }
+                                            }}
+                                            accept="image/*"
+                                            error={errors.header_image}
+                                        />
+                                        {formData.header_image && (
+                                            <span className="text-xs text-green-600 font-medium">New selected</span>
+                                        )}
+                                    </div>
                                     <p className="text-xs text-gray-500 mt-1">Leave blank to keep current image</p>
                                 </label>
                                 <label className="block">
                                     <span className="text-gray-700 font-medium mb-1 block">Card image:</span>
                                     {cardPreview && (
-                                        <div className="mb-2">
+                                        <div className="mb-2 relative inline-block group">
                                             <img src={cardPreview} alt="Card Preview" className="h-32 object-cover rounded border" />
-                                            <p className="text-xs text-gray-500">Current Image</p>
+                                            <button
+                                                type="button"
+                                                onClick={() => { setCardPreview(null); setFormData({ ...formData, card_image: null }); }}
+                                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                                                title="Remove image"
+                                            >
+                                                <X size={12} />
+                                            </button>
                                         </div>
                                     )}
-                                    <Input
-                                        type="file"
-                                        name="card_image"
-                                        onChange={handleFileChange}
-                                        accept="image/*"
-                                        error={errors.card_image}
-                                    />
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            type="file"
+                                            name="card_image"
+                                            onChange={(e) => {
+                                                handleFileChange(e);
+                                                if (e.target.files[0]) {
+                                                    setCardPreview(URL.createObjectURL(e.target.files[0]));
+                                                }
+                                            }}
+                                            accept="image/*"
+                                            error={errors.card_image}
+                                        />
+                                        {formData.card_image && (
+                                            <span className="text-xs text-green-600 font-medium">New selected</span>
+                                        )}
+                                    </div>
                                     <p className="text-xs text-gray-500 mt-1">Leave blank to keep current image</p>
                                 </label>
                             </div>
@@ -688,7 +752,7 @@ const HolidayPackageEdit = () => {
                                                     const currentDays = parseInt(formData.days || 1, 10);
                                                     if (currentDays > 1) {
                                                         setFormData(prev => ({ ...prev, days: (currentDays - 1).toString() }));
-                                                        removeRow(setPackageDestinations, i);
+                                                        // useEffect will handle the slicing of packageDestinations and itineraryDays
                                                     }
                                                 }}
                                                 className="text-red-500 hover:text-red-700 font-bold transition-transform hover:scale-125"
@@ -706,7 +770,7 @@ const HolidayPackageEdit = () => {
                                         onClick={() => {
                                             const newDays = parseInt(formData.days || 1, 10) + 1;
                                             setFormData(prev => ({ ...prev, days: newDays.toString() }));
-                                            addRow(setPackageDestinations, { destination: "", nights: 1 });
+                                            // useEffect will handle adding the row
                                         }}
                                         className="flex items-center gap-1 text-[#14532d] hover:text-[#0f4a24] font-semibold text-sm"
                                     >
@@ -805,20 +869,48 @@ const HolidayPackageEdit = () => {
 
                                         <div className="col-span-2">
                                             {row.existing_image && !row.image && (
-                                                <div className="mb-2">
-                                                    <img src={row.existing_image} alt="Day" className="h-16 w-full object-cover rounded" />
+                                                <div className="mb-2 relative inline-block group">
+                                                    <img src={row.existing_image} alt="Day" className="h-16 w-full object-cover rounded shadow-sm border" />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const copy = [...itineraryDays];
+                                                            copy[i].existing_image = null;
+                                                            setItineraryDays(copy);
+                                                        }}
+                                                        className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        title="Remove existing image"
+                                                    >
+                                                        <X size={10} />
+                                                    </button>
                                                 </div>
                                             )}
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={(e) => {
-                                                    const copy = [...itineraryDays];
-                                                    copy[i].image = e.target.files[0];
-                                                    setItineraryDays(copy);
-                                                }}
-                                                className="w-full text-xs text-gray-500"
-                                            />
+                                            <div className="flex items-center gap-1">
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={(e) => {
+                                                        const copy = [...itineraryDays];
+                                                        copy[i].image = e.target.files[0];
+                                                        setItineraryDays(copy);
+                                                    }}
+                                                    className="w-full text-[10px] text-gray-500 file:mr-1 file:py-0.5 file:px-1.5 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-green-50 file:text-[#14532d] hover:file:bg-green-100"
+                                                />
+                                                {row.image && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const copy = [...itineraryDays];
+                                                            copy[i].image = null;
+                                                            setItineraryDays(copy);
+                                                        }}
+                                                        className="text-red-500 hover:text-red-700 text-xs"
+                                                    >
+                                                        ✖
+                                                    </button>
+                                                )}
+                                            </div>
+                                            {row.image && <p className="text-green-600 text-[9px] mt-0.5">File: {row.image.name}</p>}
                                         </div>
                                     </div>
                                 ))}

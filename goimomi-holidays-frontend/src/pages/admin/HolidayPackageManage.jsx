@@ -67,9 +67,8 @@ const HolidayPackageManage = () => {
   const handleStatusToggle = async (pkg) => {
     try {
       setLoading(true);
-      const updatedPkg = { ...pkg, is_active: !pkg.is_active };
-      // Sending only necessary data for update if possible, but put usually expects full object
-      await axios.put(`${API_BASE_URL}/packages/${pkg.id}/`, updatedPkg);
+      // Use PATCH to only update is_active without needing full package data
+      await axios.patch(`${API_BASE_URL}/packages/${pkg.id}/`, { is_active: !pkg.is_active });
       setMessage(`Package ${!pkg.is_active ? "activated" : "deactivated"} successfully!`);
       fetchPackages();
     } catch (err) {
@@ -81,11 +80,11 @@ const HolidayPackageManage = () => {
   };
 
   return (
-    <div className="flex bg-gray-100 min-h-screen">
+    <div className="flex bg-gray-100 h-full overflow-hidden">
       <AdminSidebar />
-      <div className="flex-1">
+      <div className="flex-1 flex flex-col h-full overflow-hidden">
         <AdminTopbar />
-        <div className="p-6">
+        <div className="flex-1 overflow-y-auto p-6">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-xl font-semibold text-gray-800">Manage Holiday Packages</h1>
             <div className="flex gap-3">

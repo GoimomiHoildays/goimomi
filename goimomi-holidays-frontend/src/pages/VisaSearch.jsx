@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Home, Plane, Calendar, MapPin, ChevronDown, Zap, ShieldCheck, Headphones } from "lucide-react";
 import axios from "axios";
+import visaBg from "../assets/Hero/visa_bg.jpg";
 
 const VisaSearch = () => {
     const navigate = useNavigate();
@@ -19,26 +20,32 @@ const VisaSearch = () => {
     const [showGoingToDropdown, setShowGoingToDropdown] = useState(false);
     const [citizenSearch, setCitizenSearch] = useState("India");
     const [goingToSearch, setGoingToSearch] = useState("");
+    const [popularDestinations, setPopularDestinations] = useState([]);
+    const [popularVisas, setPopularVisas] = useState([]);
 
     const citizenRef = useRef(null);
     const goingToRef = useRef(null);
 
-    // Fetch Countries
+    // Fetch Initial Data
     useEffect(() => {
-        const fetchCountries = async () => {
+        const fetchInitialData = async () => {
+            setLoading(true);
             try {
-                const response = await axios.get("/api/countries/");
-                // Extract names if the API returns objects, assuming list of objects with 'name' property
-                // or list of strings. Adjust based on actual API response.
-                // Based on previous populate script, it creates objects. Serializer likely returns objects.
-                // Let's assume the serializer returns { id, name, code... } or just a list.
-                // Ideally, we check the structure. If it's a list of objects, we map to names.
-                setCountries(response.data);
+                const [countriesRes, popularDestRes, popularVisasRes] = await Promise.all([
+                    axios.get("/api/countries/"),
+                    axios.get("/api/destinations/"),
+                    axios.get("/api/visas/?is_popular=true")
+                ]);
+                setCountries(countriesRes.data);
+                setPopularDestinations(popularDestRes.data);
+                setPopularVisas(popularVisasRes.data);
             } catch (error) {
-                console.error("Error fetching countries:", error);
+                console.error("Error fetching initial data:", error);
+            } finally {
+                setLoading(false);
             }
         };
-        fetchCountries();
+        fetchInitialData();
     }, []);
 
     // Close dropdowns when clicking outside
@@ -86,7 +93,14 @@ const VisaSearch = () => {
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Hero Section with Search */}
-            <div className="bg-[#14532d] pt-20 pb-32">
+            <div
+                className="relative pt-20 pb-32 overflow-hidden"
+                style={{
+                    backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(${visaBg})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center'
+                }}
+            >
                 <div className="max-w-6xl mx-auto px-4">
                     <div className="text-center text-white mb-12">
                         <h1 className="text-4xl font-bold mb-3">Visa Services</h1>
@@ -238,8 +252,55 @@ const VisaSearch = () => {
                 </div>
             </div>
 
+
+
+
+
+            {/* Destinations for Visa */}
+            <div className="max-w-6xl mx-auto px-4 py-20 border-t border-gray-100">
+                <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
+                    <div>
+                        <h2 className="text-3xl font-black text-gray-900 tracking-tight">Popular Visas</h2>
+                        <p className="text-gray-500 font-medium">Top picks for your next international adventure</p>
+                    </div>
+                </div>
+
+                {loading ? (
+                    <div className="flex justify-center py-10">
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#14532d]"></div>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                        {popularDestinations.filter(dest => dest.card_image).map((dest) => (
+                            <div
+                                key={dest.id}
+                                onClick={() => {
+                                    navigate(`/visa/results?citizenOf=${encodeURIComponent(citizenOf)}&goingTo=${encodeURIComponent(dest.country)}`);
+                                }}
+                                className="group cursor-pointer"
+                            >
+                                <div className="aspect-[3/4] rounded-2xl overflow-hidden relative mb-3 shadow-sm group-hover:shadow-xl transition-all duration-500">
+                                    <img
+                                        src={dest.card_image || "/placeholder.jpg"}
+                                        alt={dest.name}
+                                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
+                                    <div className="absolute bottom-4 left-4 right-4">
+                                        <h3 className="text-white font-bold text-sm tracking-wide">{dest.name}</h3>
+                                        <p className="text-white/70 text-[10px] uppercase font-black tracking-widest">{dest.country}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+
+
             {/* Features Section */}
-            <div className="max-w-6xl mx-auto px-4 py-12">
+            <div className="max-w-6xl mx-auto px-4 py-20 border-t border-gray-100">
                 <div className="grid md:grid-cols-3 gap-8">
                     <div className="bg-white rounded-2xl shadow-lg p-8 text-center hover:shadow-xl transition-shadow border border-gray-100">
                         <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -266,8 +327,6 @@ const VisaSearch = () => {
                     </div>
                 </div>
             </div>
-
-
         </div>
     );
 };

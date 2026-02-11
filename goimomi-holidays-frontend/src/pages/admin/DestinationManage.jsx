@@ -75,13 +75,13 @@ const DestinationManage = () => {
 
 
   return (
-    <div className="flex bg-gray-100 min-h-screen">
+    <div className="flex bg-gray-100 h-full overflow-hidden">
       <AdminSidebar />
 
-      <div className="flex-1">
+      <div className="flex-1 flex flex-col h-full overflow-hidden">
         <AdminTopbar />
 
-        <div className="p-6">
+        <div className="flex-1 overflow-y-auto p-6">
           {/* Header */}
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-xl font-semibold text-gray-800">Manage Destinations</h1>
@@ -160,14 +160,14 @@ const DestinationManage = () => {
                     <tr>
                       <th className="text-left py-4 px-6 font-semibold uppercase text-sm tracking-wider">Name</th>
                       <th className="text-left py-4 px-6 font-semibold uppercase text-sm tracking-wider">Country</th>
-                      <th className="text-left py-4 px-6 font-semibold uppercase text-sm tracking-wider">Region</th>
+                      <th className="text-left py-4 px-6 font-semibold uppercase text-sm tracking-wider">In Home</th>
                       <th className="text-center py-4 px-6 font-semibold uppercase text-sm tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {filteredDestinations.length === 0 ? (
                       <tr>
-                        <td colSpan="4" className="text-center py-10 text-gray-500">
+                        <td colSpan="5" className="text-center py-10 text-gray-500">
                           {searchTerm ? `No destinations match "${searchTerm}"` : "No destinations found. Add one to get started!"}
                         </td>
                       </tr>
@@ -176,7 +176,17 @@ const DestinationManage = () => {
                         <tr key={destination.id} className="hover:bg-gray-50 transition-colors">
                           <td className="py-4 px-6 font-medium text-gray-900 border-r">{destination.name}</td>
                           <td className="py-4 px-6 text-gray-600 border-r">{destination.country}</td>
-                          <td className="py-4 px-6 text-gray-600 border-r">{destination.region}</td>
+                          <td className="py-4 px-6 border-r text-center">
+                            {destination.is_popular ? (
+                              <span className="px-2 py-0.5 bg-green-100 text-[#14532d] rounded-full text-[10px] font-bold uppercase tracking-tighter ring-1 ring-[#14532d]/20">
+                                Yes
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 bg-gray-100 text-gray-400 rounded-full text-[10px] font-bold uppercase tracking-tighter">
+                                No
+                              </span>
+                            )}
+                          </td>
                           <td className="py-4 px-6">
                             <div className="flex justify-center gap-4">
                               <button

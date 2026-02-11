@@ -1,10 +1,11 @@
 import React from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 
 import Navbar from './components/Navbar.jsx'
 import Footer from './components/Footer.jsx'
 import ScrollToTop from './components/ScrollToTop.jsx'
 import ComingSoon from './components/ComingSoon.jsx'
+import EnquiryForm from './components/EnquiryForm.jsx'
 
 // Pages
 import Home from './pages/Home.jsx'
@@ -14,14 +15,14 @@ import ContactSuccess from './pages/ContactSuccess.jsx'
 import CustomizedHolidays from './pages/CustomizedHolidays.jsx'
 import CustomizedUmrah from './pages/CustomizedUmrah.jsx'
 import Holidays from './pages/Holidays.jsx'
-import PlanTrip from './pages/Holidaysform.jsx'
-import Cab from './pages/cab.jsx'
-import Cruise from './pages/curise.jsx'
+import PlanTrip from './pages/HolidaysForm.jsx'
+import Cab from './pages/Cab.jsx'
+import Cruise from './pages/Cruise.jsx'
 import VisaSearch from './pages/VisaSearch.jsx'
 import VisaResults from './pages/VisaResults.jsx'
 import VisaApplication from './pages/VisaApplication.jsx'
 
-import Hotel from './pages/hotel.jsx'
+import Hotel from './pages/Hotel.jsx'
 import PrivacyPolicy from './pages/PrivacyPolicy.jsx'
 import TermsConditions from './pages/TermsConditions.jsx'
 import CancellationPolicy from './pages/CancellationPolicy.jsx'
@@ -58,20 +59,48 @@ import UmrahDestinationEdit from "./pages/admin/UmrahDestinationEdit";
 import AdminVisaManage from "./pages/admin/AdminVisaManage";
 import AdminVisaAdd from "./pages/admin/AdminVisaAdd";
 import AdminVisaEdit from "./pages/admin/AdminVisaEdit";
+import CountryManage from "./pages/admin/CountryManage";
+import CountryAdd from "./pages/admin/CountryAdd";
+import CountryEdit from "./pages/admin/CountryEdit";
+import VisaApplicationManage from "./pages/admin/VisaApplicationManage";
+import VisaApplicationEdit from "./pages/admin/VisaApplicationEdit";
+import CabEnquiryManage from "./pages/admin/CabEnquiryManage";
+import CruiseEnquiryManage from "./pages/admin/CruiseEnquiryManage";
+import HotelEnquiryManage from "./pages/admin/HotelEnquiryManage";
+import GeneralEnquiryManage from "./pages/admin/GeneralEnquiryManage";
+import SupplierManage from "./pages/admin/SupplierManage";
+import SupplierAdd from "./pages/admin/SupplierAdd";
+import SupplierEdit from "./pages/admin/SupplierEdit";
 
 import AdminLogin from "./pages/AdminLogin";
 import ProtectedRoute from "./components/admin/ProtectedRoute";
 
 const App = () => {
-  return (
-    <div className="min-h-screen flex flex-col">
+  const location = useLocation();
+  const isAdminPath = location.pathname.startsWith('/admin');
+  const [isEnquiryOpen, setIsEnquiryOpen] = React.useState(false);
 
-      {/* 👇 ScrollToTop FIX */}
+  React.useEffect(() => {
+    // Only show if not on admin path and hasn't been shown before
+    if (!isAdminPath) {
+      const hasShown = sessionStorage.getItem("generalEnquiryShown");
+      if (!hasShown) {
+        const timer = setTimeout(() => {
+          setIsEnquiryOpen(true);
+          sessionStorage.setItem("generalEnquiryShown", "true");
+        }, 3000); // Open after 3 seconds
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isAdminPath]);
+
+  return (
+    <div className={`flex flex-col ${isAdminPath ? 'h-screen overflow-hidden' : 'min-h-screen'}`}>
       <ScrollToTop />
 
       <Navbar />
 
-      <main className="flex-1">
+      <main className={`flex-1 ${isAdminPath ? 'flex flex-col min-h-0 overflow-hidden' : ''}`}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
@@ -139,15 +168,26 @@ const App = () => {
             <Route path="/admin/visas" element={<AdminVisaManage />} />
             <Route path="/admin/visas/add" element={<AdminVisaAdd />} />
             <Route path="/admin/visas/edit/:id" element={<AdminVisaEdit />} />
-
+            <Route path="/admin/countries" element={<CountryManage />} />
+            <Route path="/admin/countries/add" element={<CountryAdd />} />
+            <Route path="/admin/countries/edit/:id" element={<CountryEdit />} />
+            <Route path="/admin/visa-applications" element={<VisaApplicationManage />} />
+            <Route path="/admin/visa-applications/edit/:id" element={<VisaApplicationEdit />} />
+            <Route path="/admin/cab-enquiries" element={<CabEnquiryManage />} />
+            <Route path="/admin/cruise-enquiries" element={<CruiseEnquiryManage />} />
+            <Route path="/admin/hotel-enquiries" element={<HotelEnquiryManage />} />
+            <Route path="/admin/general-enquiries" element={<GeneralEnquiryManage />} />
+            <Route path="/admin/suppliers" element={<SupplierManage />} />
+            <Route path="/admin/suppliers/add" element={<SupplierAdd />} />
+            <Route path="/admin/suppliers/edit/:id" element={<SupplierEdit />} />
           </Route>
         </Routes>
       </main>
 
-
-      <Footer />
+      {!isAdminPath && <Footer />}
+      <EnquiryForm isOpen={isEnquiryOpen} onClose={() => setIsEnquiryOpen(false)} />
     </div>
-  )
-}
+  );
+};
 
 export default App

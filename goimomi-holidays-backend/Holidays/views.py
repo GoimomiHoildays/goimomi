@@ -8,6 +8,8 @@ from rest_framework.permissions import AllowAny # Import AllowAny
 from django.contrib.auth import authenticate
 from .models import *
 from .serializers import *
+from django.core.mail import send_mail
+from django.conf import settings
 
 
 @authentication_classes([])
@@ -16,8 +18,6 @@ class AdminLoginView(APIView):
     def post(self, request):
         username = request.data.get("username")
         password = request.data.get("password")
-        
-        user = authenticate(username=username, password=password)
         
         user = authenticate(username=username, password=password)
         
@@ -103,6 +103,13 @@ class DestinationViewSet(ModelViewSet):
     serializer_class = DestinationSerializer
     pagination_class = None
 
+    def get_queryset(self):
+        queryset = Destination.objects.all()
+        is_popular = self.request.query_params.get('is_popular', None)
+        if is_popular is not None:
+            queryset = queryset.filter(is_popular=is_popular.lower() == 'true')
+        return queryset
+
 
 class StartingCityViewSet(ModelViewSet):
     authentication_classes = []
@@ -154,25 +161,23 @@ class VisaViewSet(ModelViewSet):
 
     def get_queryset(self):
         queryset = Visa.objects.all()
-        
         is_all = self.request.query_params.get('all', 'false').lower() == 'true'
         
-        # In list view, we filter by is_active unless 'all=true' is passed
-        if self.action == 'list' and not is_all:
-            queryset = queryset.filter(is_active=True)
-        # For other actions (retrieve, update, etc.), we want the full queryset
-        elif self.action != 'list':
+        # Admin view or explicit 'all' param
+        if getattr(self, 'action', 'list') != 'list' or is_all:
             return queryset
 
+        # Default filtering for public view
         country = self.request.query_params.get('country', None)
+        is_popular = self.request.query_params.get('is_popular', None)
         
-        if is_all:
-            return queryset
-            
-        # Default for users
         queryset = queryset.filter(is_active=True)
+        
         if country:
             queryset = queryset.filter(country__iexact=country)
+            
+        if is_popular is not None:
+            queryset = queryset.filter(is_popular=is_popular.lower() == 'true')
             
         return queryset
 
@@ -200,7 +205,7 @@ class VisaApplicationViewSet(ModelViewSet):
             passport_front = request.FILES.get(f'applicant_{i}_passport_front')
             photo = request.FILES.get(f'applicant_{i}_photo')
             
-            VisaApplicant.objects.create(
+            applicant = VisaApplicant.objects.create(
                 application=application,
                 first_name=applicant_data.get('first_name', ''),
                 last_name=applicant_data.get('last_name', ''),
@@ -216,8 +221,35 @@ class VisaApplicationViewSet(ModelViewSet):
                 passport_front=passport_front,
                 photo=photo
             )
+
+            # Handle additional documents
+            additional_docs = applicant_data.get('additional_documents', [])
+            for j, doc_data in enumerate(additional_docs):
+                doc_file = request.FILES.get(f'applicant_{i}_additional_doc_{j}')
+                if doc_file:
+                    VisaAdditionalDocument.objects.create(
+                        applicant=applicant,
+                        document_name=doc_data.get('name', f'Document {j+1}'),
+                        file=doc_file
+                    )
             
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class VisaApplicantViewSet(ModelViewSet):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+    queryset = VisaApplicant.objects.all()
+    serializer_class = VisaApplicantSerializer
+    pagination_class = None
+
+
+class VisaAdditionalDocumentViewSet(ModelViewSet):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+    queryset = VisaAdditionalDocument.objects.all()
+    serializer_class = VisaAdditionalDocumentSerializer
+    pagination_class = None
 
 
 class CountryViewSet(ModelViewSet):
@@ -226,3 +258,33 @@ class CountryViewSet(ModelViewSet):
     queryset = Country.objects.all()
     serializer_class = CountrySerializer
     pagination_class = None
+
+class SupplierViewSet(ModelViewSet):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+    queryset = Supplier.objects.all().order_by('-created_at')
+    serializer_class = SupplierSerializer
+    pagination_class = None
+
+@authentication_classes([])
+@permission_classes([AllowAny])
+class SendVisaDetailsAPI(APIView):
+    def post(self, request):
+        email = request.data.get("email")
+        subject = request.data.get("subject")
+        body = request.data.get("body")
+        
+        if not email or not subject or not body:
+            return Response({"error": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            send_mail(
+                subject,
+                body,
+                settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'hello@goimomi.com',
+                [email],
+                fail_silently=False,
+            )
+            return Response({"success": "Email sent successfully"})
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

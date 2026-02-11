@@ -15,9 +15,13 @@ router.register("nationalities", NationalityViewSet)
 router.register("umrah-destinations", UmrahDestinationViewSet)
 router.register("visas", VisaViewSet)
 router.register("visa-applications", VisaApplicationViewSet)
+router.register("visa-applicants", VisaApplicantViewSet)
+router.register("additional-documents", VisaAdditionalDocumentViewSet)
 router.register("countries", CountryViewSet)
+router.register("suppliers", SupplierViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
     path('admin-login/', AdminLoginView.as_view(), name='admin-login'),
+    path('send-visa-details/', SendVisaDetailsAPI.as_view(), name='send-visa-details'),
 ]

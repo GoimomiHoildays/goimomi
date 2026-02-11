@@ -1,9 +1,20 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { CheckCircle, Upload, ChevronDown, Check, User, Info, FileText, Image as ImageIcon, Trash2, X, Plus } from "lucide-react";
+import { CheckCircle, Upload, ChevronDown, Check, User, Info, FileText, Image as ImageIcon, Trash2, X, Plus, MapPin } from "lucide-react";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
+import visaBg from "../assets/Hero/visa_bg.jpg";
+
+
+const getImageUrl = (url) => {
+    if (!url) return "";
+    if (typeof url !== "string") return url;
+    if (url.startsWith("http")) {
+        return url.replace("http://localhost:8000", "").replace("http://127.0.0.1:8000", "");
+    }
+    return url;
+};
 
 const VisaApplication = () => {
     const { id } = useParams();
@@ -11,9 +22,9 @@ const VisaApplication = () => {
     const navigate = useNavigate();
 
     const visa = location.state?.visa;
+    const [appDepartureDate, setAppDepartureDate] = useState(location.state?.departureDate || "");
+    const [appReturnDate, setAppReturnDate] = useState(location.state?.returnDate || "");
     const citizenOf = location.state?.citizenOf || "India";
-    const departureDate = location.state?.departureDate || "";
-    const returnDate = location.state?.returnDate || "";
 
     // Steps for Sidebar
     const steps = [
@@ -24,13 +35,15 @@ const VisaApplication = () => {
         { id: "submit", label: "Submit" }
     ];
 
-    const [currentStep, setCurrentStep] = useState("internal_id");
-
-    // Form State
-    const [applicationType, setApplicationType] = useState("Individual");
-    const [internalId, setInternalId] = useState("");
-    const [groupName, setGroupName] = useState("");
+    const [visaData, setVisaData] = useState(visa || null);
+    const [isLoadingVisa, setIsLoadingVisa] = useState(!visa);
     const [selectedVisaType, setSelectedVisaType] = useState(visa?.title || "");
+
+    useEffect(() => {
+        if (visaData) {
+            setSelectedVisaType(visaData.title);
+        }
+    }, [visaData]);
 
     // Data State
     const [countries, setCountries] = useState([]);
@@ -66,15 +79,43 @@ const VisaApplication = () => {
     const groupNameRef = useRef(null);
     const travelerRef = useRef(null);
 
-    const VISA_FEES = visa?.price || 2250;
-    const SERVICE_FEES = 0;
-    const TOTAL_PRICE = (VISA_FEES + SERVICE_FEES) * applicants.length;
+    const [currentStep, setCurrentStep] = useState("internal_id");
+
+    // Form State
+    const [applicationType, setApplicationType] = useState("Individual");
+    const [internalId, setInternalId] = useState("");
+    const [groupName, setGroupName] = useState("");
+
+    useEffect(() => {
+        if (!visa && id) {
+            const fetchVisa = async () => {
+                try {
+                    setIsLoadingVisa(true);
+                    const response = await axios.get(`/api/visas/${id}/`);
+                    setVisaData(response.data);
+                } catch (error) {
+                    console.error("Error fetching visa:", error);
+                } finally {
+                    setIsLoadingVisa(false);
+                }
+            };
+            fetchVisa();
+        }
+    }, [visa, id]);
+
+    // Use visaData instead of visa for the rest of the component
+    const currentVisa = visaData;
+    const VISA_FEES = Number(currentVisa?.cost_price) || 0;
+    const SERVICE_FEES = Number(currentVisa?.service_charge) || 0;
+    const TOTAL_PRICE = (VISA_FEES + SERVICE_FEES) * (applicants?.length || 1);
+
+
 
     useEffect(() => {
         const fetchCountries = async () => {
             try {
                 const response = await axios.get("/api/countries/");
-                setCountries(response.data);
+                setCountries(Array.isArray(response.data) ? response.data : []);
             } catch (error) {
                 console.error("Error fetching countries:", error);
             }
@@ -83,12 +124,16 @@ const VisaApplication = () => {
     }, []);
 
     const handleApplicantChange = (index, field, value) => {
-        const updated = [...applicants];
-        updated[index][field] = value;
-        setApplicants(updated);
-        // Clear error for this field when it changes
-        setErrors(prevErrors => {
-            const newErrors = { ...prevErrors };
+        if (!applicants[index]) return;
+        setApplicants(prev => {
+            const updated = [...prev];
+            updated[index] = { ...updated[index], [field]: value };
+            return updated;
+        });
+
+        // Clear error for this field
+        setErrors(prev => {
+            const newErrors = { ...prev };
             delete newErrors[`applicant_${index}_${field}`];
             return newErrors;
         });
@@ -96,13 +141,19 @@ const VisaApplication = () => {
 
     const handleFileChange = (index, field, file) => {
         if (file) {
-            const updated = [...applicants];
-            updated[index][field] = file;
-            updated[index][`${field}_preview`] = URL.createObjectURL(file);
-            setApplicants(updated);
-            // Clear error for this file field when it changes
-            setErrors(prevErrors => {
-                const newErrors = { ...prevErrors };
+            setApplicants(prev => {
+                const updated = [...prev];
+                updated[index] = {
+                    ...updated[index],
+                    [field]: file,
+                    [`${field}_preview`]: URL.createObjectURL(file)
+                };
+                return updated;
+            });
+
+            // Clear error
+            setErrors(prev => {
+                const newErrors = { ...prev };
                 delete newErrors[`applicant_${index}_${field}`];
                 return newErrors;
             });
@@ -110,34 +161,64 @@ const VisaApplication = () => {
     };
 
     const removeFile = (index, field) => {
-        const updated = [...applicants];
-        updated[index][field] = null;
-        updated[index][`${field}_preview`] = null;
-        setApplicants(updated);
+        setApplicants(prev => {
+            const updated = [...prev];
+            if (!updated[index]) return prev;
+            updated[index] = {
+                ...updated[index],
+                [field]: null,
+                [`${field}_preview`]: null
+            };
+            return updated;
+        });
     };
 
     const addAdditionalDocument = (applicantIndex) => {
-        const updated = [...applicants];
-        updated[applicantIndex].additional_documents.push({
-            id: Date.now() + Math.random(),
-            file: null,
-            preview: null
+        setApplicants(prev => {
+            const updated = [...prev];
+            if (!updated[applicantIndex]) return prev;
+            updated[applicantIndex] = {
+                ...updated[applicantIndex],
+                additional_documents: [
+                    ...updated[applicantIndex].additional_documents,
+                    { id: Date.now() + Math.random(), file: null, preview: null }
+                ]
+            };
+            return updated;
         });
-        setApplicants(updated);
     };
 
     const removeAdditionalDocument = (applicantIndex, docIndex) => {
-        const updated = [...applicants];
-        updated[applicantIndex].additional_documents.splice(docIndex, 1);
-        setApplicants(updated);
+        setApplicants(prev => {
+            const updated = [...prev];
+            if (!updated[applicantIndex]) return prev;
+            const newDocs = [...updated[applicantIndex].additional_documents];
+            newDocs.splice(docIndex, 1);
+            updated[applicantIndex] = {
+                ...updated[applicantIndex],
+                additional_documents: newDocs
+            };
+            return updated;
+        });
     };
 
     const handleAdditionalFileChange = (applicantIndex, docIndex, file) => {
         if (file) {
-            const updated = [...applicants];
-            updated[applicantIndex].additional_documents[docIndex].file = file;
-            updated[applicantIndex].additional_documents[docIndex].preview = URL.createObjectURL(file);
-            setApplicants(updated);
+            setApplicants(prev => {
+                const updated = [...prev];
+                if (!updated[applicantIndex]) return prev;
+                const newDocs = [...updated[applicantIndex].additional_documents];
+                newDocs[docIndex] = {
+                    ...newDocs[docIndex],
+                    file: file,
+                    preview: URL.createObjectURL(file)
+                };
+                updated[applicantIndex] = {
+                    ...updated[applicantIndex],
+                    additional_documents: newDocs
+                };
+                return updated;
+            });
         }
     };
 
@@ -172,16 +253,17 @@ const VisaApplication = () => {
         let newErrors = {};
         let isValid = true;
 
-        // Internal ID and Group Name are not marked as required in the UI, so skipping validation for them for now.
-        // If they become required, add checks here:
-        // if (!internalId.trim()) {
-        //      newErrors.internal_id = "Internal ID is required";
-        //      isValid = false;
-        // }
-        // if (applicationType === "Group" && !groupName.trim()) {
-        //      newErrors.group_name = "Group Name is required for group applications";
-        //      isValid = false;
-        // }
+        if (!appDepartureDate) {
+            newErrors.departure_date = "Departure date is required";
+            isValid = false;
+        }
+        if (!appReturnDate) {
+            newErrors.return_date = "Return date is required";
+            isValid = false;
+        } else if (appDepartureDate && new Date(appReturnDate) <= new Date(appDepartureDate)) {
+            newErrors.return_date = "Return date must be after departure date";
+            isValid = false;
+        }
 
         applicants.forEach((applicant, index) => {
             // Passport Number
@@ -303,8 +385,8 @@ const VisaApplication = () => {
             formData.append("application_type", applicationType);
             formData.append("internal_id", internalId);
             formData.append("group_name", groupName);
-            formData.append("departure_date", departureDate);
-            formData.append("return_date", returnDate);
+            formData.append("departure_date", appDepartureDate);
+            formData.append("return_date", appReturnDate);
             formData.append("total_price", TOTAL_PRICE);
 
             // Filter out previews and nulls
@@ -347,10 +429,11 @@ const VisaApplication = () => {
                 return internalId.trim().length > 0;
             case "group_name":
                 return groupName.trim().length > 0;
-            case "traveler_1":
+            case "traveler_1": {
                 // Basic check for traveler 1 completion
                 const app = applicants[0];
                 return app && app.first_name && app.passport_number && app.passport_front && app.photo;
+            }
             case "review":
                 // Considered complete if we have at least one valid traveler
                 return applicants.length > 0 && isStepComplete("traveler_1");
@@ -369,7 +452,8 @@ const VisaApplication = () => {
         return false;
     };
 
-    if (!visa) return <div className="p-10 text-center">Loading...</div>;
+    if (isLoadingVisa) return <div className="p-10 text-center">Loading...</div>;
+    if (!currentVisa) return <div className="p-10 text-center">Visa not found</div>;
 
     return (
         <div className="min-h-screen bg-gray-50 flex font-sans">
@@ -431,15 +515,94 @@ const VisaApplication = () => {
                         className="px-6 py-2 bg-[#14532d] text-white rounded-full font-medium hover:bg-[#0f4a24] text-sm shadow-sm flex items-center gap-2"
                         style={{ backgroundColor: '#14532d' }}
                     >
-                        {submitting ? "Saving..." : "Review and Save"}
+                        {submitting ? "Applying..." : "Apply"}
                     </button>
                 </div>
 
-                <div className="space-y-8">
+                {/* Header Section with Background Image/Video */}
+                <div
+                    className="relative mb-8 rounded-2xl overflow-hidden shadow-lg border border-gray-100 min-h-[200px] flex items-center"
+                    style={{
+                        backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(${visaBg})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center'
+                    }}
+                >
+                    {currentVisa?.header_image && (
+                        <img
+                            src={getImageUrl(currentVisa.header_image)}
+                            alt={currentVisa.title}
+                            className="absolute inset-0 w-full h-full object-cover opacity-40"
+                        />
+                    )}
 
+                    <div className="relative z-10 p-6 md:p-10 w-full">
+                        <div className="max-w-4xl">
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                                <div>
+                                    <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-3 drop-shadow-md">
+                                        {currentVisa?.title || "Visa Application"}
+                                    </h1>
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <span className="flex items-center gap-1.5 bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-bold text-white border border-white/30 uppercase tracking-widest">
+                                            <MapPin size={12} /> {currentVisa?.country || "Destination"}
+                                        </span>
+                                        <span className="bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-bold text-white border border-white/30 uppercase tracking-widest">
+                                            {currentVisa?.visa_type || "Tourist Visa"}
+                                        </span>
+                                        <span className="bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-bold text-white border border-white/30 uppercase tracking-widest">
+                                            {currentVisa?.entry_type || "Single Entry"}
+                                        </span>
+                                    </div>
+                                </div>
+
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="space-y-8">
                     {/* Section 1: Application Type */}
                     <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
                         <h2 className="text-lg font-bold text-gray-900 mb-4">Are You Applying For</h2>
+
+                        <div className="grid md:grid-cols-2 gap-4 text-sm mb-6">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-500 mb-2">Departure Date <span className="text-red-500">*</span></label>
+                                <input
+                                    type="date"
+                                    className={`w-full px-3 py-2 rounded-xl border ${errors.departure_date ? 'border-red-500' : 'border-gray-200'} focus:border-[#14532d] outline-none transition-colors bg-gray-50/50 text-sm`}
+                                    value={appDepartureDate}
+                                    onChange={(e) => {
+                                        setAppDepartureDate(e.target.value);
+                                        setErrors(prev => {
+                                            const next = { ...prev };
+                                            delete next.departure_date;
+                                            return next;
+                                        });
+                                    }}
+                                />
+                                {errors.departure_date && <p className="text-red-500 text-xs mt-1">{errors.departure_date}</p>}
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-500 mb-2">Return Date <span className="text-red-500">*</span></label>
+                                <input
+                                    type="date"
+                                    className={`w-full px-3 py-2 rounded-xl border ${errors.return_date ? 'border-red-500' : 'border-gray-200'} focus:border-[#14532d] outline-none transition-colors bg-gray-50/50 text-sm`}
+                                    value={appReturnDate}
+                                    onChange={(e) => {
+                                        setAppReturnDate(e.target.value);
+                                        setErrors(prev => {
+                                            const next = { ...prev };
+                                            delete next.return_date;
+                                            return next;
+                                        });
+                                    }}
+                                />
+                                {errors.return_date && <p className="text-red-500 text-xs mt-1">{errors.return_date}</p>}
+                            </div>
+                        </div>
 
                         <div className="flex gap-3 mb-6">
                             <button
@@ -486,20 +649,14 @@ const VisaApplication = () => {
                         </div>
 
                         <div className="mt-4">
-                            <label className="block text-xs font-semibold text-gray-500 mb-2">Visa Type</label>
+                            <label className="block text-xs font-semibold text-gray-500 mb-2">Visa Name</label>
                             <div className="relative">
-                                <select
+                                <input
+                                    type="text"
                                     value={selectedVisaType}
-                                    onChange={(e) => setSelectedVisaType(e.target.value)}
-                                    className="w-full px-3 py-2 rounded-xl border border-[#14532d] text-gray-900 appearance-none bg-white font-medium outline-none focus:ring-1 focus:ring-[#14532d] text-sm"
-                                    style={{ borderColor: '#14532d' }}
-                                >
-                                    <option>{visa.title}</option>
-                                    <option>Vietnam E-Visa</option>
-                                    <option>Vietnam 90 Days Multiple Entry E-Visa</option>
-                                    <option>Lighting Fast (6 Business Hours)</option>
-                                </select>
-                                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                                    readOnly
+                                    className="w-full px-3 py-2 rounded-xl border border-[#14532d] text-gray-900 bg-gray-50 font-medium outline-none text-sm cursor-not-allowed"
+                                />
                             </div>
                         </div>
                     </div>
@@ -732,7 +889,12 @@ const VisaApplication = () => {
                             <div>
                                 <h3 className="text-md font-bold text-gray-900 mb-1">Upload Traveler Photo</h3>
                                 <p className="text-sm text-gray-500 mb-6 leading-relaxed max-w-3xl">
-                                    Vietnam requires a passport-sized photo of the traveler. You can upload a selfie of the traveler.
+                                    {currentVisa?.country || "The country"} requires a passport-sized photo of the traveler.
+                                    {currentVisa?.photography_required ? (
+                                        <span className="block mt-1 font-medium text-gray-700">Requirements: {currentVisa.photography_required}</span>
+                                    ) : (
+                                        " You can upload a selfie of the traveler."
+                                    )}
                                 </p>
 
                                 <div className={`border-2 border-dashed ${errors[`applicant_${index}_photo`] ? 'border-red-500 bg-red-50' : 'border-gray-300'} rounded-2xl p-6 text-center hover:bg-gray-50 transition-colors w-full md:w-1/2 relative group cursor-pointer`}>
@@ -836,7 +998,7 @@ const VisaApplication = () => {
                                                             <img src={doc.preview} alt="Document Preview" className="h-40 mx-auto object-cover rounded-lg shadow-sm" />
                                                         )}
                                                         <div className="mt-2 text-[#14532d] font-semibold text-sm flex items-center justify-center gap-2">
-                                                            <CheckCircle size={16} /> File Selected: {doc.file.name}
+                                                            <CheckCircle size={16} /> File Selected: {doc.file?.name || 'Selected'}
                                                         </div>
                                                     </div>
                                                 ) : (
@@ -877,31 +1039,32 @@ const VisaApplication = () => {
                     <h3 className="text-xl font-bold text-gray-900 mb-6">Visa Information</h3>
                     <div className="space-y-4 mb-8">
                         <div>
-                            <p className="text-sm text-gray-500 font-medium">Vietnam - {selectedVisaType}</p>
+                            <p className="text-xs text-gray-500 uppercase font-bold mb-0.5">Destination</p>
+                            <p className="text-sm text-gray-900 font-semibold">{currentVisa?.country || "Destination"} - {selectedVisaType || "Visa"}</p>
                         </div>
                         <div>
-                            <p className="text-sm text-gray-500 font-medium">Travelers: <span className="text-gray-900">{applicants.length}</span></p>
+                            <p className="text-xs text-gray-500 uppercase font-bold mb-0.5">Citizen of</p>
+                            <p className="text-sm text-gray-900 font-semibold">{citizenOf}</p>
                         </div>
                         <div>
-                            <p className="text-sm text-gray-500 font-medium">Travel Dates: <span className="text-gray-900">{departureDate} - {returnDate}</span></p>
+                            <p className="text-xs text-gray-500 uppercase font-bold mb-0.5">Travel Particulars</p>
+                            <p className="text-sm text-gray-900 font-semibold">
+                                {applicants?.length || 1} Traveler(s) • {currentVisa?.entry_type || "Entry"}
+                            </p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-gray-500 uppercase font-bold mb-0.5">Dates</p>
+                            <p className="text-sm text-gray-900 font-semibold">{appDepartureDate || "N/A"} - {appReturnDate || "N/A"}</p>
                         </div>
                     </div>
 
-                    <h3 className="text-lg font-bold text-gray-900 mb-2">Expected Visa Approval</h3>
-                    <div className="flex items-center gap-2 text-gray-700 mb-8 font-medium">
-                        <CalendarIcon />
-                        {/* Calculate approx date, +3 days from now */}
-                        {new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US')}
-                    </div>
+
 
                     <div className="bg-gray-50 rounded-xl p-4 mb-6">
                         <div className="flex justify-between items-center">
                             <h3 className="text-lg font-bold text-gray-900">Price Details</h3>
                         </div>
-
-
-
-                        <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
+                        <div className="flex justify-between items-center mt-4">
                             <span className="text-gray-900 font-bold">Total Amount</span>
                             <span className="text-2xl font-bold text-[#14532d]">₹{TOTAL_PRICE.toLocaleString()}</span>
                         </div>
@@ -911,7 +1074,7 @@ const VisaApplication = () => {
                         onClick={handleSubmit}
                         className="w-full py-4 bg-[#14532d] text-white rounded-xl font-bold hover:bg-[#0f4a24] shadow-lg transition-all flex items-center justify-center gap-2"
                     >
-                        {submitting ? "Processing..." : "Review and Save"}
+                        {submitting ? "Applying..." : "Apply"}
                     </button>
                 </div>
             </div>
@@ -920,10 +1083,6 @@ const VisaApplication = () => {
 };
 
 // Helper components
-const CalendarIcon = () => (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-    </svg>
-);
+
 
 export default VisaApplication;

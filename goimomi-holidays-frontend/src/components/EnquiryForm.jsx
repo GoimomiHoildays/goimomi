@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
-import SuccessModal from "../components/SuccessModal";
+import SuccessModal from "./SuccessModal";
 
 const EnquiryForm = ({ isOpen, onClose }) => {
   const [name, setName] = useState("");
@@ -12,6 +12,18 @@ const EnquiryForm = ({ isOpen, onClose }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState(null);
+
+  // Lock body scroll when the modal is open
+  React.useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "auto";
+    }
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, [isOpen]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -76,8 +88,8 @@ const EnquiryForm = ({ isOpen, onClose }) => {
         }}
         message="Your enquiry has been submitted successfully! Our team will contact you shortly."
       />
-      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-        <div className="bg-white w-full max-w-[320px] rounded-xl shadow-xl p-5 relative">
+      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[200] p-4">
+        <div className="bg-white w-full max-w-[320px] rounded-2xl shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto">
           <button
             onClick={onClose}
             className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
