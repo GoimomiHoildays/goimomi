@@ -26,6 +26,13 @@ const Input = (props) => (
     </div>
 );
 
+const formatWithCommas = (value) => {
+    if (value === null || value === undefined || value === "") return "";
+    const cleanValue = value.toString().replace(/\D/g, "");
+    if (!cleanValue) return "";
+    return new Intl.NumberFormat("en-IN").format(cleanValue);
+};
+
 
 const HolidayPackageEdit = () => {
     const { id } = useParams();
@@ -172,7 +179,9 @@ const HolidayPackageEdit = () => {
                         description: day.description,
                         master_template: day.master_template || "",
                         image: null, // We generally don't pre-fill file inputs. 
-                        existing_image: getImageUrl(day.image) // Can show preview if needed
+                        existing_image: getImageUrl(day.image), // Can show preview if needed
+                        save_to_master: false,
+                        master_name: ""
                     })));
                 }
 
@@ -216,7 +225,7 @@ const HolidayPackageEdit = () => {
                     const newDays = [];
                     for (let i = prev.length + 1; i <= dayCount; i++) {
                         newDays.push({
-                            day: i.toString(), title: "", description: "", master_template: "", image: null
+                            day: i.toString(), title: "", description: "", master_template: "", image: null, save_to_master: false, master_name: ""
                         });
                     }
                     return [...prev, ...newDays];
@@ -255,7 +264,12 @@ const HolidayPackageEdit = () => {
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
+        if (name === "offer_price" || name === "price") {
+            const cleanValue = value.replace(/\D/g, "");
+            setFormData((prev) => ({ ...prev, [name]: cleanValue }));
+        } else {
+            setFormData((prev) => ({ ...prev, [name]: value }));
+        }
     };
 
     const getNightRange = (index) => {
@@ -397,6 +411,37 @@ const HolidayPackageEdit = () => {
                 setMessage("Holiday package updated successfully!");
                 setErrors({});
                 window.scrollTo(0, 0);
+            }
+
+            // After package is successfully updated, save marked itineraries to master
+            for (let i = 0; i < itineraryDays.length; i++) {
+                const day = itineraryDays[i];
+                if (day.save_to_master && day.master_name) {
+                    try {
+                        const masterData = new FormData();
+                        masterData.append("name", day.master_name);
+                        masterData.append("title", day.title);
+                        masterData.append("description", day.description);
+
+                        // Get destination for this day to categorize master
+                        const destName = getDestinationForDay(i);
+                        const destObj = destinations.find(d => d.name === destName);
+                        if (destObj) {
+                            masterData.append("destination", destObj.id);
+                        }
+
+                        if (day.image) {
+                            masterData.append("image", day.image);
+                        }
+
+                        await axios.post(`${API_BASE_URL}/itinerary-masters/`, masterData, {
+                            headers: { "Content-Type": "multipart/form-data" }
+                        });
+                        console.log(`Saved day ${i + 1} to master as ${day.master_name}`);
+                    } catch (mErr) {
+                        console.error(`Error saving day ${i + 1} to master:`, mErr);
+                    }
+                }
             }
         } catch (err) {
             console.error("Error updating package:", err);
@@ -624,9 +669,9 @@ const HolidayPackageEdit = () => {
                                 <label className="block">
                                     <span className="text-gray-700 font-medium mb-1 block">Offer price:</span>
                                     <Input
-                                        type="number"
+                                        type="text"
                                         name="offer_price"
-                                        value={formData.offer_price}
+                                        value={formatWithCommas(formData.offer_price)}
                                         onChange={handleInputChange}
                                         error={errors.offer_price}
                                     />
@@ -634,9 +679,9 @@ const HolidayPackageEdit = () => {
                                 <label className="block">
                                     <span className="text-gray-700 font-medium mb-1 block">Price:</span>
                                     <Input
-                                        type="number"
+                                        type="text"
                                         name="price"
-                                        value={formData.price}
+                                        value={formatWithCommas(formData.price)}
                                         onChange={handleInputChange}
                                     />
                                 </label>
@@ -785,10 +830,11 @@ const HolidayPackageEdit = () => {
                             <div className="text-gray-800">
                                 <div className="grid grid-cols-12 gap-4 px-4 py-2 bg-[#e6f0eb] text-[#14532d] text-xs font-bold uppercase tracking-wider border-b border-green-100">
                                     <div className="col-span-1">Day</div>
-                                    <div className="col-span-3">Master Template</div>
+                                    <div className="col-span-2">Master Template</div>
                                     <div className="col-span-3">Title</div>
-                                    <div className="col-span-3">Description</div>
+                                    <div className="col-span-2">Description</div>
                                     <div className="col-span-2">Image</div>
+                                    <div className="col-span-2">Save to Master</div>
                                 </div>
 
                                 {itineraryDays.map((row, i) => (
@@ -803,7 +849,8 @@ const HolidayPackageEdit = () => {
                                             </span>
                                         </div>
 
-                                        <div className="col-span-3">
+                                        {/* Master Template */}
+                                        <div className="col-span-2">
                                             <select
                                                 value={row.master_template}
                                                 onChange={(e) => handleMasterTemplateChange(i, e.target.value)}
@@ -812,20 +859,29 @@ const HolidayPackageEdit = () => {
                                                 <option value="">Select Template...</option>
                                                 {(() => {
                                                     const currentDest = getDestinationForDay(i);
-                                                    // Show only templates matching current destination, fallback to Global if empty
-                                                    const targetGroup = currentDest && currentDest !== "---" ? currentDest : "Global / General";
-                                                    const masters = groupedItineraryMasters[targetGroup] || [];
-
-                                                    if (masters.length === 0) return <option disabled>No templates for {targetGroup}</option>;
+                                                    const destSpecificMasters = currentDest && currentDest !== "---" ? (groupedItineraryMasters[currentDest] || []) : [];
+                                                    const globalMasters = groupedItineraryMasters["Global / General"] || [];
 
                                                     return (
-                                                        <optgroup label={targetGroup}>
-                                                            {masters.map((master) => (
-                                                                <option key={master.id} value={master.id}>
-                                                                    {master.name}
-                                                                </option>
-                                                            ))}
-                                                        </optgroup>
+                                                        <>
+                                                            {destSpecificMasters.length > 0 && (
+                                                                <optgroup label={`${currentDest} Templates`}>
+                                                                    {destSpecificMasters.map((master) => (
+                                                                        <option key={master.id} value={master.id}>{master.name}</option>
+                                                                    ))}
+                                                                </optgroup>
+                                                            )}
+                                                            {globalMasters.length > 0 && (
+                                                                <optgroup label="Global / General Templates">
+                                                                    {globalMasters.map((master) => (
+                                                                        <option key={master.id} value={master.id}>{master.name}</option>
+                                                                    ))}
+                                                                </optgroup>
+                                                            )}
+                                                            {destSpecificMasters.length === 0 && globalMasters.length === 0 && (
+                                                                <option disabled>No templates available</option>
+                                                            )}
+                                                        </>
                                                     );
                                                 })()}
                                             </select>
@@ -854,7 +910,8 @@ const HolidayPackageEdit = () => {
                                             />
                                         </div>
 
-                                        <div className="col-span-3">
+                                        {/* Description */}
+                                        <div className="col-span-2">
                                             <textarea
                                                 value={row.description}
                                                 onChange={(e) => {
@@ -862,8 +919,8 @@ const HolidayPackageEdit = () => {
                                                     copy[i].description = e.target.value;
                                                     setItineraryDays(copy);
                                                 }}
-                                                rows="4"
-                                                className="w-full bg-white border border-gray-300 text-black px-2 py-1 rounded focus:border-[#14532d] text-sm"
+                                                rows="3"
+                                                className="w-full bg-white border border-gray-300 text-gray-800 px-2 py-1 rounded focus:border-[#14532d] focus:ring-1 focus:ring-[#14532d] focus:outline-none text-xs"
                                             />
                                         </div>
 
@@ -911,6 +968,39 @@ const HolidayPackageEdit = () => {
                                                 )}
                                             </div>
                                             {row.image && <p className="text-green-600 text-[9px] mt-0.5">File: {row.image.name}</p>}
+                                        </div>
+
+                                        {/* Save to Master */}
+                                        <div className="col-span-2 bg-[#f0f9f4] p-2 rounded border border-green-100">
+                                            <label className="flex items-center gap-2 cursor-pointer group">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={row.save_to_master}
+                                                    onChange={(e) => {
+                                                        const copy = [...itineraryDays];
+                                                        copy[i].save_to_master = e.target.checked;
+                                                        setItineraryDays(copy);
+                                                    }}
+                                                    className="w-3.5 h-3.5 text-[#14532d] focus:ring-[#14532d] rounded border-gray-300"
+                                                />
+                                                <span className="text-[10px] font-bold text-[#14532d] uppercase tracking-tighter group-hover:text-green-800">Save as Master</span>
+                                            </label>
+                                            {row.save_to_master && (
+                                                <div className="mt-2 animate-in fade-in slide-in-from-top-1">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Internal ID"
+                                                        value={row.master_name}
+                                                        onChange={(e) => {
+                                                            const copy = [...itineraryDays];
+                                                            copy[i].master_name = e.target.value.toLowerCase().replace(/\s+/g, '_');
+                                                            setItineraryDays(copy);
+                                                        }}
+                                                        className="w-full bg-white border border-green-200 text-[10px] px-1.5 py-1 rounded focus:outline-none focus:ring-1 focus:ring-green-500 font-medium"
+                                                    />
+                                                    <p className="text-[8px] text-green-600 mt-1 italic">Will be saved to Master List</p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 ))}

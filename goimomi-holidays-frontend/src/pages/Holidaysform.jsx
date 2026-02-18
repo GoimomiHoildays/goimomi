@@ -78,18 +78,18 @@ const HolidaysForm = ({ isOpen, onClose, packageType }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const filteredDestinations = destinationsList.filter(d =>
-    d.name.toLowerCase().includes(citySearch.toLowerCase()) ||
-    (d.country && d.country.toLowerCase().includes(citySearch.toLowerCase()))
+  const filteredDestinations = (destinationsList || []).filter(d =>
+    d?.name?.toLowerCase().includes(citySearch.toLowerCase()) ||
+    (d?.country && d.country.toLowerCase().includes(citySearch.toLowerCase()))
   );
 
-  const filteredStartingCities = startingCitiesList.filter(c =>
-    c.name.toLowerCase().includes(startCitySearch.toLowerCase())
+  const filteredStartingCities = (startingCitiesList || []).filter(c =>
+    c?.name?.toLowerCase().includes(startCitySearch.toLowerCase())
   );
 
-  const filteredNationalities = nationalitiesList.filter(n =>
-    n.nationality.toLowerCase().includes(nationalitySearch.toLowerCase()) ||
-    n.country.toLowerCase().includes(nationalitySearch.toLowerCase())
+  const filteredNationalities = (nationalitiesList || []).filter(n =>
+    n?.nationality?.toLowerCase().includes(nationalitySearch.toLowerCase()) ||
+    n?.country?.toLowerCase().includes(nationalitySearch.toLowerCase())
   );
 
   // Step 2 States
@@ -321,7 +321,7 @@ const HolidaysForm = ({ isOpen, onClose, packageType }) => {
         message="Your holiday enquiry has been submitted successfully! Our team will contact you shortly."
       />
       <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[200] p-4">
-        <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto scrollbar-hide">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 relative max-h-[90vh] overflow-y-auto scrollbar-hide">
 
           {/* Close */}
           <button
