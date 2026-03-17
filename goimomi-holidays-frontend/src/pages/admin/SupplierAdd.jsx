@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../api";
 import { useNavigate } from "react-router-dom";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import AdminTopbar from "../../components/admin/AdminTopbar";
@@ -29,7 +29,7 @@ const SupplierAdd = () => {
 
     const API_BASE_URL = "/api";
 
-    const serviceOptions = ["HOLIDAYS", "Visa", "Flight", "Hotel", "Attestation"];
+    const serviceOptions = ["HOLIDAYS", "Visa", "Flight", "Hotel", "Attestation", "Cab", "Cruise"];
 
     useEffect(() => {
         fetchCountries();
@@ -38,7 +38,7 @@ const SupplierAdd = () => {
     const fetchCountries = async () => {
         try {
             setFetchingCountries(true);
-            const response = await axios.get(`${API_BASE_URL}/countries/`);
+            const response = await api.get(`${API_BASE_URL}/countries/`);
             // Map countries for SearchableSelect
             const countryOptions = response.data.map(c => ({
                 label: c.name,
@@ -111,7 +111,7 @@ const SupplierAdd = () => {
         delete submitData.country_code;
 
         try {
-            const response = await axios.post(`${API_BASE_URL}/suppliers/`, submitData);
+            const response = await api.post(`${API_BASE_URL}/suppliers/`, submitData);
 
             if (response.status === 201) {
                 setMessage("Supplier added successfully!");

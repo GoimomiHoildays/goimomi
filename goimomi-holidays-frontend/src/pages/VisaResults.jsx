@@ -1,16 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import axios from "axios";
-import { CheckCircle, Home, Plane, Calendar, Search, X, Copy, MapPin, ChevronDown, Share2, Mail, Eye, MessageCircle } from "lucide-react";
+import api from "../api";
+import { CheckCircle, Home, Plane, Calendar, Search, X, Copy, MapPin, ChevronDown, Share2, Mail, Eye, MessageCircle, Zap } from "lucide-react";
+import { getImageUrl } from "../utils/imageUtils";
 
-const getImageUrl = (url) => {
-    if (!url) return "";
-    if (typeof url !== "string") return url;
-    if (url.startsWith("http")) {
-        return url.replace("http://localhost:8000", "").replace("http://127.0.0.1:8000", "");
-    }
-    return url;
-};
 
 const VisaResults = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -18,18 +11,25 @@ const VisaResults = () => {
     const [visas, setVisas] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeDocPopup, setActiveDocPopup] = useState(null);
+    const [activePricePopup, setActivePricePopup] = useState(null);
     const [viewDetailsVisa, setViewDetailsVisa] = useState(null);
     const [emailModalVisa, setEmailModalVisa] = useState(null);
     const [sharingEmail, setSharingEmail] = useState("");
     const [sendingEmail, setSendingEmail] = useState(false);
     const [selectedVisas, setSelectedVisas] = useState([]);
-    const [isBulkSharing, setIsBulkSharing] = useState(false);
+    const [_isBulkSharing, setIsBulkSharing] = useState(false);
     const [viewBulkData, setViewBulkData] = useState(null);
+
+    const getTomorrowDate = (days = 1) => {
+        const d = new Date();
+        d.setDate(d.getDate() + days);
+        return d.toISOString().split('T')[0];
+    };
 
     // Search state managed locally for interactivity
     const [citizenOf, setCitizenOf] = useState(searchParams.get("citizenOf") || "India");
     const [goingTo, setGoingTo] = useState(searchParams.get("goingTo") || "");
-    const [departureDate, setDepartureDate] = useState(searchParams.get("departureDate") || "");
+    const [departureDate, setDepartureDate] = useState(searchParams.get("departureDate") || getTomorrowDate(1));
     const [returnDate, setReturnDate] = useState(searchParams.get("returnDate") || "");
 
     // Dropdown and Search Logic
@@ -55,6 +55,10 @@ const VisaResults = () => {
             if (goingToRef.current && !goingToRef.current.contains(event.target)) {
                 setShowGoingToDropdown(false);
             }
+            // Close price popup when clicking outside
+            if (!event.target.closest(".price-info-container")) {
+                setActivePricePopup(null);
+            }
         };
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -62,39 +66,42 @@ const VisaResults = () => {
 
     const fetchCountries = async () => {
         try {
-            const response = await axios.get("/api/countries/");
-            setCountries(response.data);
+            const response = await api.get("/api/countries/");
+            // Ensure response.data is an array and filter out any invalid entries
+            const validCountries = Array.isArray(response.data) ? response.data.filter(c => c && c.name) : [];
+            setCountries(validCountries);
         } catch (error) {
             console.error("Error fetching countries:", error);
+            setCountries([]);
         }
     };
 
     const fetchVisas = async () => {
         const country = searchParams.get("goingTo");
-        console.log(`[DEBUG] Fetching visas for destination: "${country}"`);
+
         if (!country) {
-            console.warn("[DEBUG] No country parameter found in URL");
+            setLoading(false);
             return;
         }
 
         try {
             setLoading(true);
-            const response = await axios.get(`/api/visas/?country=${encodeURIComponent(country)}`);
-            console.log(`[DEBUG] API Response for "${country}":`, response.data);
+            const response = await api.get(`/api/visas/?country=${encodeURIComponent(country)}`);
+
+            // Ensure response.data is an array before filtering
+            const rawData = Array.isArray(response.data) ? response.data : [];
 
             // Strict matching to prevent cross-contamination (e.g. USA search showing UAE results)
-            const strictFilteredVisas = response.data.filter(v => {
-                const match = v.country && v.country.trim().toLowerCase() === country.trim().toLowerCase();
-                if (!match) {
-                    console.log(`[DEBUG] Filtering out visa "${v.title}" because it belongs to country "${v.country}" but searching for "${country}"`);
-                }
+            const strictFilteredVisas = rawData.filter(v => {
+                const match = v && v.country && country &&
+                    v.country.trim().toLowerCase() === country.trim().toLowerCase();
                 return match;
             });
 
-            console.log(`[DEBUG] Final filtered visas count: ${strictFilteredVisas.length}`);
             setVisas(strictFilteredVisas);
         } catch (error) {
-            console.error("[DEBUG] Error fetching visas:", error);
+            console.error("Error fetching visas:", error);
+            setVisas([]);
         } finally {
             setLoading(false);
         }
@@ -114,12 +121,12 @@ const VisaResults = () => {
         setSearchParams(params);
     };
 
-    const filteredCitizenCountries = countries.filter(c =>
-        c.name.toLowerCase().includes(citizenSearch.toLowerCase())
+    const filteredCitizenCountries = (countries || []).filter(c =>
+        c && c.name && c.name.toLowerCase().includes((citizenSearch || "").toLowerCase())
     );
 
-    const filteredGoingToCountries = countries.filter(c =>
-        c.name.toLowerCase().includes(goingToSearch.toLowerCase())
+    const filteredGoingToCountries = (countries || []).filter(c =>
+        c && c.name && c.name.toLowerCase().includes((goingToSearch || "").toLowerCase())
     );
 
 
@@ -160,7 +167,7 @@ const VisaResults = () => {
             text += `Country: ${visa.country_details?.name || visa.country}\n`;
             text += `Type: ${visa.visa_type}\n`;
             text += `Entry: ${visa.entry_type}\n`;
-            text += `Price: ₹${visa.selling_price?.toLocaleString()}\n`;
+            text += `Price: ₹${Number(visa.selling_price || 0).toLocaleString('en-IN')}\n`;
             text += `Processing Time: ${visa.processing_time}\n`;
             text += `Documents Required: ${visa.documents_required || "N/A"}\n`;
             text += `Photography Requirements: ${visa.photography_required || "N/A"}\n`;
@@ -227,7 +234,7 @@ Entry: ${emailModalVisa.entry_type}
 Validity: ${emailModalVisa.validity || "N/A"}
 Duration: ${emailModalVisa.duration || "N/A"}
 Processing Time: ${emailModalVisa.processing_time}
-Price: ₹${emailModalVisa.selling_price?.toLocaleString()}
+Price: ₹${Number(emailModalVisa.selling_price || 0).toLocaleString('en-IN')}
 -------------------------------------------------------------
 Thank you for choosing goimomi.com
 In case of any support :
@@ -238,7 +245,7 @@ Terms & Conditions:
 Visa approval, processing time, and entry depend on authorities. Fees are non-refundable, delays may occur, rules may change, and overstaying may cause penalties.`;
 
         try {
-            await axios.post('/api/send-visa-details/', {
+            await api.post('/api/send-visa-details/', {
                 email: sharingEmail,
                 subject,
                 body
@@ -425,11 +432,11 @@ Visa approval, processing time, and entry depend on authorities. Fees are non-re
                 ) : (
                     <div className="space-y-6">
                         {visas.map((visa) => {
-                            console.log(`Visa ID: ${visa.id}`, visa);
+
                             return (
                                 <div
                                     key={visa.id}
-                                    className={`bg-white rounded-2xl shadow-sm border transition-all relative ${selectedVisas.some(v => v.id === visa.id) ? 'border-green-500 ring-2 ring-green-500/10' : 'border-gray-100'}`}
+                                    className={`bg-white rounded-2xl shadow-md border-2 transition-all relative ${selectedVisas.some(v => v.id === visa.id) ? 'border-[#14532d] ring-4 ring-[#14532d]/10' : 'border-gray-200'}`}
                                 >
                                     {/* Selection Checkbox */}
                                     <div
@@ -444,7 +451,7 @@ Visa approval, processing time, and entry depend on authorities. Fees are non-re
                                         </div>
                                     </div>
                                     {/* Header with Background Image/Video */}
-                                    <div className="relative h-20 md:h-24 rounded-t-2xl overflow-hidden bg-[#14532d]">
+                                    <div className="relative h-20 md:h-24 bg-[#14532d] border-b border-black/10 rounded-t-2xl overflow-hidden">
                                         {visa.card_image && (
                                             <img
                                                 src={getImageUrl(visa.card_image)}
@@ -478,7 +485,7 @@ Entry: ${visa.entry_type}
 Validity: ${visa.validity || "N/A"}
 Duration: ${visa.duration || "N/A"}
 Processing Time: ${visa.processing_time}
-Price: ₹${visa.selling_price?.toLocaleString()}
+Price: ₹${Number(visa.selling_price || 0).toLocaleString('en-IN')}
 -------------------------------------------------------------
 Thank you for choosing goimomi.com
 In case of any support :
@@ -563,19 +570,21 @@ Visa approval, processing time, and entry depend on authorities. Fees are non-re
                                                     </button>
 
                                                     {activeDocPopup === `doc_${visa.id}` && (
-                                                        <div className="absolute top-full left-0 mt-3 w-72 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 p-5 animate-in fade-in zoom-in-95 duration-200">
-                                                            <div className="flex justify-between items-center mb-4">
-                                                                <h4 className="font-bold text-gray-900">Documents</h4>
-                                                                <div className="flex items-center gap-3">
+                                                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-44 bg-white rounded-lg shadow-2xl border border-gray-100 z-[100] p-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                                                            {/* Arrow */}
+                                                            <div className="absolute -top-1 w-2 h-2 bg-white border-t border-l border-gray-100 rotate-45 left-1/2 -translate-x-1/2"></div>
+                                                            <div className="flex justify-between items-center mb-1.5 px-0.5">
+                                                                <h4 className="font-bold text-gray-900 text-[9px] uppercase tracking-wider">Documents</h4>
+                                                                <div className="flex items-center gap-1.5">
                                                                     <button
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
                                                                             handleCopy(visa.documents_required);
                                                                         }}
-                                                                        className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2 py-1 rounded-lg transition-colors"
+                                                                        className="flex items-center gap-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-1 rounded transition-colors"
                                                                     >
-                                                                        <Copy size={14} />
-                                                                        <span className="text-xs font-medium">Copy</span>
+                                                                        <Copy size={9} />
+                                                                        <span className="text-[8px] font-bold">Copy</span>
                                                                     </button>
                                                                     <button
                                                                         onClick={(e) => {
@@ -584,17 +593,19 @@ Visa approval, processing time, and entry depend on authorities. Fees are non-re
                                                                         }}
                                                                         className="text-gray-400 hover:text-gray-600 transition-colors"
                                                                     >
-                                                                        <X size={18} />
+                                                                        <X size={12} />
                                                                     </button>
                                                                 </div>
                                                             </div>
-                                                            <ul className="list-disc pl-4 space-y-2">
-                                                                {visa.documents_required ? visa.documents_required.split(',').map((doc, idx) => (
-                                                                    <li key={idx} className="text-sm text-gray-700 leading-relaxed pl-1">{doc.trim()}</li>
-                                                                )) : (
-                                                                    <li className="text-sm text-gray-500 italic">No specific documents listed.</li>
-                                                                )}
-                                                            </ul>
+                                                            <div className="max-h-32 overflow-y-auto custom-scrollbar pr-1">
+                                                                <ul className="list-disc pl-3 space-y-0.5">
+                                                                    {visa.documents_required ? visa.documents_required.split(',').map((doc, idx) => (
+                                                                        <li key={idx} className="text-[10px] text-gray-700 leading-tight">{doc.trim()}</li>
+                                                                    )) : (
+                                                                        <li className="text-[9px] text-gray-500 italic">No docs listed.</li>
+                                                                    )}
+                                                                </ul>
+                                                            </div>
                                                         </div>
                                                     )}
                                                 </div>
@@ -613,19 +624,21 @@ Visa approval, processing time, and entry depend on authorities. Fees are non-re
                                                     </button>
 
                                                     {activeDocPopup === `photo_${visa.id}` && (
-                                                        <div className="absolute top-full left-0 mt-3 w-72 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 p-5 animate-in fade-in zoom-in-95 duration-200">
-                                                            <div className="flex justify-between items-center mb-4">
-                                                                <h4 className="font-bold text-gray-900">Photography</h4>
-                                                                <div className="flex items-center gap-3">
+                                                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-44 bg-white rounded-lg shadow-2xl border border-gray-100 z-[100] p-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                                                            {/* Arrow */}
+                                                            <div className="absolute -top-1 w-2 h-2 bg-white border-t border-l border-gray-100 rotate-45 left-1/2 -translate-x-1/2"></div>
+                                                            <div className="flex justify-between items-center mb-1.5 px-0.5">
+                                                                <h4 className="font-bold text-gray-900 text-[9px] uppercase tracking-wider">Photography</h4>
+                                                                <div className="flex items-center gap-1.5">
                                                                     <button
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
                                                                             handleCopy(visa.photography_required);
                                                                         }}
-                                                                        className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2 py-1 rounded-lg transition-colors"
+                                                                        className="flex items-center gap-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-1 rounded transition-colors"
                                                                     >
-                                                                        <Copy size={14} />
-                                                                        <span className="text-xs font-medium">Copy</span>
+                                                                        <Copy size={9} />
+                                                                        <span className="text-[8px] font-bold">Copy</span>
                                                                     </button>
                                                                     <button
                                                                         onClick={(e) => {
@@ -634,17 +647,19 @@ Visa approval, processing time, and entry depend on authorities. Fees are non-re
                                                                         }}
                                                                         className="text-gray-400 hover:text-gray-600 transition-colors"
                                                                     >
-                                                                        <X size={18} />
+                                                                        <X size={12} />
                                                                     </button>
                                                                 </div>
                                                             </div>
-                                                            <ul className="list-disc pl-4 space-y-2">
-                                                                {visa.photography_required ? visa.photography_required.split(',').map((req, idx) => (
-                                                                    <li key={idx} className="text-sm text-gray-700 leading-relaxed pl-1">{req.trim()}</li>
-                                                                )) : (
-                                                                    <li className="text-sm text-gray-500 italic">No specific photography requirements.</li>
-                                                                )}
-                                                            </ul>
+                                                            <div className="max-h-32 overflow-y-auto custom-scrollbar pr-1">
+                                                                <ul className="list-disc pl-3 space-y-0.5">
+                                                                    {visa.photography_required ? visa.photography_required.split(',').map((req, idx) => (
+                                                                        <li key={idx} className="text-[10px] text-gray-700 leading-tight">{req.trim()}</li>
+                                                                    )) : (
+                                                                        <li className="text-[9px] text-gray-500 italic">No requirements listed.</li>
+                                                                    )}
+                                                                </ul>
+                                                            </div>
                                                         </div>
                                                     )}
                                                 </div>
@@ -657,11 +672,33 @@ Visa approval, processing time, and entry depend on authorities. Fees are non-re
 
                                             {/* Price and Action */}
                                             <div className="flex flex-row md:flex-col items-center md:items-end gap-4 min-w-[150px]">
-                                                <div className="flex items-center gap-1">
-                                                    <span className="text-xl font-bold text-gray-900">₹{visa.selling_price?.toLocaleString()}</span>
-                                                    <svg className="w-4 h-4 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    </svg>
+                                                <div className="flex items-center gap-1 relative price-info-container">
+                                                    <span className="text-xl font-bold text-gray-900">₹{Number(visa.selling_price || 0).toLocaleString('en-IN')}</span>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setActivePricePopup(activePricePopup === visa.id ? null : visa.id);
+                                                        }}
+                                                        className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none"
+                                                    >
+                                                        <svg className="w-4 h-4 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                    </button>
+
+                                                    {activePricePopup === visa.id && (
+                                                        <div className="absolute bottom-full right-0 mb-2 w-48 bg-white rounded-xl shadow-2xl border border-gray-100 z-[60] p-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                                                            <div className="flex flex-col gap-1">
+                                                                <p className="text-xs font-bold text-gray-900">Conditions Applied</p>
+                                                                <div className="h-0.5 w-8 bg-green-600 rounded-full mb-1"></div>
+                                                                <p className="text-[10px] text-gray-500 leading-relaxed font-medium">
+                                                                    Prices are dynamic and subject to change based on embassy rules and availability.
+                                                                </p>
+                                                            </div>
+                                                            {/* Arrow */}
+                                                            <div className="absolute -bottom-1.5 right-1 w-3 h-3 bg-white border-b border-r border-gray-100 rotate-45"></div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <button
                                                     onClick={() => handleSelect(visa)}
@@ -702,7 +739,7 @@ Duration: ${viewDetailsVisa.duration || "N/A"}
 Processing Time: ${viewDetailsVisa.processing_time}
 Documents Required: ${viewDetailsVisa.documents_required || "N/A"}
 Photography Requirements: ${viewDetailsVisa.photography_required || "N/A"}
-Price: ₹${viewDetailsVisa.selling_price?.toLocaleString()}
+Price: ₹${Number(viewDetailsVisa.selling_price || 0).toLocaleString('en-IN')}
 -------------------------------------------------------------
 Thank you for choosing goimomi.com
 In case of any support :
@@ -766,7 +803,7 @@ Visa approval, processing time, and entry depend on authorities. Fees are non-re
                                         </div>
                                     )}
 
-                                    <p className="pt-1"><span className="font-bold">Price:</span> ₹{viewDetailsVisa.selling_price?.toLocaleString()}</p>
+                                    <p className="pt-1"><span className="font-bold">Price:</span> ₹{Number(viewDetailsVisa.selling_price || 0).toLocaleString('en-IN')}</p>
                                 </div>
                                 <p className="text-gray-400 text-[10px]">-------------------------------------------------------------</p>
                                 <p>Thank you for choosing goimomi.com</p>
@@ -891,7 +928,7 @@ Visa approval, processing time, and entry depend on authorities. Fees are non-re
                                                 </div>
                                             )}
 
-                                            <p className="pt-1"><span className="font-bold">Price:</span> ₹{visa.selling_price?.toLocaleString()}</p>
+                                            <p className="pt-1"><span className="font-bold">Price:</span> ₹{Number(visa.selling_price || 0).toLocaleString('en-IN')}</p>
                                         </div>
                                     </div>
                                 ))}
@@ -952,6 +989,57 @@ Visa approval, processing time, and entry depend on authorities. Fees are non-re
                     </div>
                 </div>
             )}
+            {/* ---------------- WHY CHOOSE US SECTION (PREMIUM DESIGN) ---------------- */}
+            <section className="py-24 px-6 bg-gradient-to-b from-gray-50 to-white relative overflow-hidden">
+                {/* Decorative Background Elements */}
+                <div className="absolute top-0 left-0 w-96 h-96 bg-[#14532d]/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
+                <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
+
+                <div className="max-w-7xl mx-auto relative z-10">
+                    <div className="text-center mb-16">
+                        <h2 className="text-4xl md:text-5xl font-black text-[#14532d] tracking-tight mb-4">
+                            Trust the Experts
+                        </h2>
+                        <div className="w-20 h-1.5 bg-gradient-to-r from-[#14532d] to-[#22c55e] mx-auto rounded-full"></div>
+                    </div>
+
+                    <div className="grid md:grid-cols-3 gap-8">
+                        {/* Why Goimomi Holidays */}
+                        <div className="group bg-white/60 backdrop-blur-xl p-8 rounded-[2rem] shadow-xl border border-white/40 hover:border-[#14532d]/20 transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl fade-up">
+                            <div className="w-14 h-14 bg-gradient-to-br from-[#14532d] to-[#22c55e] rounded-2xl flex items-center justify-center text-white mb-6 transform group-hover:rotate-6 transition-transform shadow-lg shadow-green-200">
+                                <Zap size={28} />
+                            </div>
+                            <h3 className="text-2xl font-black text-gray-900 mb-4 tracking-tight leading-tight">Why Goimomi Holidays?</h3>
+                            <p className="text-gray-600 text-[13px] leading-relaxed font-medium">
+                                Established in 2010, Goimomi Holidays has since positioned itself as one of the leading companies,
+                                providing <span className="text-[#14532d] font-bold">great offers</span>, competitive airfares, and a <span className="text-[#14532d] font-bold">seamless booking experience</span>. We deliver amazing perks like Instant Discounts and MyRewardsProgram to make every journey better.
+                            </p>
+                        </div>
+
+                        {/* Booking Flights with Goimomi Holidays */}
+                        <div className="group bg-white/60 backdrop-blur-xl p-8 rounded-[2rem] shadow-xl border border-white/40 hover:border-[#14532d]/20 transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl fade-up" style={{ animationDelay: "0.1s" }}>
+                            <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-cyan-400 rounded-2xl flex items-center justify-center text-white mb-6 transform group-hover:rotate-6 transition-transform shadow-lg shadow-blue-200">
+                                <Search size={28} />
+                            </div>
+                            <h3 className="text-2xl font-black text-gray-900 mb-4 tracking-tight leading-tight">Smart Flight Booking</h3>
+                            <p className="text-gray-600 text-[13px] leading-relaxed font-medium">
+                                Find the <span className="text-blue-600 font-bold">best deals</span> in just a few clicks. Our 24/7 dedicated helpline caters to over <span className="text-blue-600 font-bold">5 million happy customers</span>. Experience personalized travel planning that puts your convenience first, every single time.
+                            </p>
+                        </div>
+
+                        {/* Domestic Flights with Goimomi Holidays */}
+                        <div className="group bg-white/60 backdrop-blur-xl p-8 rounded-[2rem] shadow-xl border border-white/40 hover:border-[#14532d]/20 transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl fade-up" style={{ animationDelay: "0.2s" }}>
+                            <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-orange-300 rounded-2xl flex items-center justify-center text-white mb-6 transform group-hover:rotate-6 transition-transform shadow-lg shadow-amber-200">
+                                <Plane size={28} />
+                            </div>
+                            <h3 className="text-2xl font-black text-gray-900 mb-4 tracking-tight leading-tight">Leading Domestic Expert</h3>
+                            <p className="text-gray-600 text-[13px] leading-relaxed font-medium">
+                                India's <span className="text-amber-600 font-bold">leading player</span> for flight bookings. We guarantee the lowest prices with instant notifications for fare drops, <span className="text-amber-600 font-bold">amazing discounts</span>, and effortless rebook options for your domestic travel.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </div>
     );
 };

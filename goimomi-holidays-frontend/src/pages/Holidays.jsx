@@ -1,11 +1,274 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
-import axios from "axios";
-import { Share2, Mail, Eye, MessageCircle, X, Copy, Calendar, MapPin, CheckCircle, ChevronDown, Search, FileDown, Plane, Clock, Building2, Sparkles, ArrowRight } from "lucide-react";
+import api from "../api";
+import { Share2, Mail, Eye, MessageCircle, X, Copy, Calendar, MapPin, CheckCircle, ChevronDown, Search, FileDown, Plane, Clock, Building2, Sparkles, ArrowRight, Hotel, Utensils } from "lucide-react";
+import { getImageUrl } from "../utils/imageUtils";
 import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import FormModal from "../components/FormModal";
 import goimomilogo from "../assets/goimomilogo.png";
+import pdfImg1 from "../assets/pdf/BALI - awesome waterfalls near UBUD.jpeg";
+import pdfImg2 from "../assets/pdf/Egypt.jpeg";
+import pdfImg3 from "../assets/pdf/FAMILY FUN IN VIETNAM _ Tailor-made tour - Exotic Voyages.jpeg";
+import pdfImg4 from "../assets/pdf/16 of the Best Places to Visit in Italy.jpeg";
+import pdfImg5 from "../assets/pdf/Petra (Jordan).jpeg";
+import pdfImg6 from "../assets/pdf/The Colosseum, Rome.jpeg";
+import pdfImg7 from "../assets/pdf/Matera_ The City of Stones.jpeg";
+import pdfImg8 from "../assets/pdf/20 Best City Breaks in the World - Travel Den.jpeg";
+import pdfImg9 from "../assets/pdf/A guide to the Azores.jpeg";
+import pdfImg10 from "../assets/pdf/5 Day Phuket Thailand Itinerary - Guide To Things To Do.jpeg";
+import pdfImg11 from "../assets/pdf/10 Top Cities In India To Visit - Hand Luggage Only - Travel, Food And Photography Blog.jpeg";
+import pdfImg12 from "../assets/pdf/Navigating Japanese Culture_ 20 Essential Etiquette Tips for Travelers.jpeg";
+import pdfImg13 from "../assets/pdf/amazing places in the world to travel.jpeg";
+import pdfImg14 from "../assets/pdf/The ultimate travel Guide to Cappadocia, Turkey - Jyo Shankar.jpeg";
+import pdfImg15 from "../assets/pdf/100 Most Beautiful UNESCO World Heritage Sites - Road Affair.jpeg";
+import pdfImg16 from "../assets/pdf/15 Best Places In Turkey To Visit - Hand Luggage Only - Travel, Food And Photography Blog.jpeg";
+
+
+const HolidayCard = ({ pkg, navigate, generateShareText, setEmailModalPkg, downloadPackagePDF, setViewDetailsPkg }) => {
+  const [activeTab, setActiveTab] = useState("Hotels");
+  const [selectedTier, setSelectedTier] = useState("Standard");
+
+  const uniqueHotels = React.useMemo(() => {
+    const hotels = [];
+    (pkg.itinerary || []).forEach(day => {
+      const details = typeof day.details_json === 'string' ? JSON.parse(day.details_json || '{}') : day.details_json;
+      (details?.accommodations || []).forEach(acc => {
+        const name = acc.hotelName || acc.hotel_name;
+        if (name && !hotels.includes(name)) hotels.push(name);
+      });
+    });
+    return hotels;
+  }, [pkg.itinerary]);
+
+  const sightseeings = React.useMemo(() => {
+    const s = [];
+    (pkg.itinerary || []).forEach(day => {
+      const details = typeof day.details_json === 'string' ? JSON.parse(day.details_json || '{}') : day.details_json;
+      (details?.sightseeing || []).forEach(item => {
+        if (item && !s.includes(item)) s.push(item);
+      });
+    });
+    return s;
+  }, [pkg.itinerary]);
+
+  const slots = React.useMemo(() => {
+    try {
+      return pkg.fixed_departure_data ? (typeof pkg.fixed_departure_data === 'string' ? JSON.parse(pkg.fixed_departure_data) : pkg.fixed_departure_data) : [];
+    } catch (e) { return []; }
+  }, [pkg.fixed_departure_data]);
+
+  const currentPrice = React.useMemo(() => {
+    if (slots.length > 0) {
+      const slot = slots[0];
+      const tierData = slot.tiers?.[selectedTier];
+      if (tierData && tierData.length > 0) return tierData[0].offer_price;
+    }
+    return pkg.Offer_price;
+  }, [slots, selectedTier, pkg.Offer_price]);
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-sm shadow-sm mb-4 flex flex-col font-sans max-w-[1000px] mx-auto overflow-hidden">
+      {/* HEADER BAR */}
+      <div className="px-3 py-1.5 border-b border-gray-100 bg-gray-50/30 flex items-center justify-between">
+        <h3 className="text-[15px] font-bold text-gray-800">
+          <span className="font-extrabold text-black">({pkg.nights || pkg.days - 1}N/{pkg.days}D)</span> - {pkg.fixed_departure ? 'Fix Departure: ' : ''}{pkg.title}
+        </h3>
+
+        {/* SHARE PILL BAR - Top Right Corner */}
+        <div className="bg-[#4d4d4d] text-white rounded-full py-1 px-3 flex items-center gap-3 shadow-md scale-95 origin-right">
+          <div className="flex items-center gap-1.5 pr-3 border-r border-gray-500">
+            <Share2 size={12} className="text-gray-300" />
+            <span className="text-[9px] font-black tracking-widest uppercase">Share :</span>
+          </div>
+
+          <button
+            onClick={(e) => { e.stopPropagation(); window.open(`https://wa.me/?text=${encodeURIComponent(generateShareText(pkg))}`, '_blank'); }}
+            className="flex items-center gap-1 hover:text-green-400 transition-colors"
+            title="WhatsApp"
+          >
+            <MessageCircle size={12} />
+            <span className="text-[9px] font-bold">WhatsApp</span>
+          </button>
+
+          <button
+            onClick={(e) => { e.stopPropagation(); setEmailModalPkg(pkg); }}
+            className="flex items-center gap-1 hover:text-blue-400 transition-colors"
+            title="Email"
+          >
+            <Mail size={12} />
+            <span className="text-[9px] font-bold">Email</span>
+          </button>
+
+          <button
+            onClick={(e) => { e.stopPropagation(); downloadPackagePDF(pkg); }}
+            className="flex items-center gap-1 hover:text-red-400 transition-colors"
+            title="PDF"
+          >
+            <FileDown size={12} />
+            <span className="text-[9px] font-bold">PDF</span>
+          </button>
+
+          <button
+            onClick={(e) => { e.stopPropagation(); setViewDetailsPkg(pkg); }}
+            className="flex items-center gap-1 hover:opacity-80 transition-opacity ml-1"
+            title="View"
+          >
+            <Eye size={12} className="text-yellow-500" />
+            <span className="text-[9px] font-bold text-yellow-500">View</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-col md:flex-row">
+        {/* LEFT COLUMN */}
+        <div className="w-full md:w-[180px] p-3 flex flex-col items-center shrink-0">
+          <div className="relative w-full aspect-square bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center shadow-sm border border-gray-100">
+            {pkg.fixed_departure && (
+              <div className="absolute top-0 left-0 z-20 flex flex-col items-start translate-x-[-2px] translate-y-[-2px]">
+                <div className="bg-[#1a1a1a] text-white px-3 py-1 text-[11px] font-bold shadow-md rounded-tl-xl">
+                  Fix Departure
+                </div>
+                {/* Speech bubble pointer */}
+                <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-[#1a1a1a] ml-2"></div>
+              </div>
+            )}
+            <img 
+              src={getImageUrl(pkg.card_image)} 
+              className="absolute inset-0 w-full h-full object-cover" 
+              alt={pkg.title}
+              onError={(e) => { e.target.style.display = 'none'; }}
+            />
+          </div>
+          <button
+            onClick={() => navigate(`/holiday/${pkg.id}`)}
+            className="w-full mt-2 border border-[#16a34a] text-[#16a34a] py-1 text-[11px] font-medium hover:bg-green-50 transition-colors"
+          >
+            View Detailed Itinerary
+          </button>
+        </div>
+
+        {/* MIDDLE COLUMN - Tabs Content */}
+        <div className="flex-1 p-0 flex flex-col border-r border-gray-200">
+          {/* TABS */}
+          <div className="flex border-b border-gray-200">
+            {["Hotels", "Sightseeings", "Inclusion", "Exclusion", "Dates"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`flex-1 py-1.5 text-[12px] font-medium transition-all relative ${activeTab === tab
+                  ? "bg-[#333] text-white"
+                  : "text-gray-700 hover:text-[#16a34a]"
+                  }`}
+              >
+                {tab}
+                {activeTab === tab && (
+                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-4 border-t-[#333]"></div>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* TAB CONTENT */}
+          <div className="p-3 flex-1">
+            {activeTab === "Hotels" && (
+              <div className="border border-gray-200 rounded-sm">
+                <div className="bg-[#f2f2f2] px-3 py-1 text-[11px] font-bold text-gray-700 border-b border-gray-200 uppercase tracking-tight">
+                  Hotels Included in package
+                </div>
+                <div className="p-3 space-y-2">
+                  {uniqueHotels.length > 0 ? uniqueHotels.map((h, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#16a34a]"></div>
+                      <span className="text-[12px] font-black text-[#3498db] tracking-tight">{h}</span>
+                    </div>
+                  )) : (
+                    <div className="p-2 text-center text-gray-400 italic text-[11px]">No hotel details specified.</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === "Sightseeings" && (
+              <div className="flex flex-wrap gap-1.5">
+                {sightseeings.length > 0 ? sightseeings.map((s, i) => (
+                  <span key={i} className="bg-gray-50 border border-gray-200 px-1.5 py-0.5 text-[10px] font-medium text-gray-600 rounded">{s}</span>
+                )) : <div className="p-4 text-center text-gray-400 italic w-full">Standard sightseeing included.</div>}
+              </div>
+            )}
+
+            {activeTab === "Inclusion" && (
+              <ul className="grid grid-cols-2 gap-1 text-[11px] text-gray-700">
+                {(pkg.inclusions?.length ? pkg.inclusions : [{ text: "Accommodation" }, { text: "Daily Breakfast" }]).map((inc, i) => (
+                  <li key={i} className="flex items-start gap-1">
+                    <span className="text-green-600 font-bold">✓</span>
+                    {inc.text}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {activeTab === "Exclusion" && (
+              <ul className="grid grid-cols-2 gap-1 text-[11px] text-gray-500">
+                {(pkg.exclusions?.length ? pkg.exclusions : [{ text: "Optional Tours" }, { text: "Personal Expenses" }]).map((exc, i) => (
+                  <li key={i} className="flex items-start gap-1">
+                    <span className="text-red-500 font-bold">×</span>
+                    {exc.text}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {activeTab === "Dates" && (
+              <div className="grid grid-cols-3 gap-1.5">
+                {slots.length > 0 ? slots.map((s, i) => (
+                  <div key={i} className="border border-gray-100 px-1.5 py-0.5 text-center text-[10px] font-bold text-gray-600 bg-gray-50 uppercase tracking-tighter">
+                    {new Date(s.travel_date).toLocaleDateString("en-IN", { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </div>
+                )) : <div className="p-4 text-center text-gray-400 italic w-full">Contact for availability.</div>}
+              </div>
+            )}
+          </div>
+
+          {/* LOWER ICONS BAR */}
+          <div className="px-3 pb-3 flex items-center gap-3">
+            <span className="text-[12px] font-bold text-gray-800">Inclusion :</span>
+            <div className="flex gap-1.5">
+              <div className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500" title="Hotels"><Hotel size={14} /></div>
+              <div className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500" title="Meals"><Utensils size={14} /></div>
+              <div className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500" title="Transfers"><ArrowRight size={14} /></div>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN - PRICING */}
+        <div className="w-full md:w-[200px] bg-[#fdfdfd] p-4 flex flex-col items-center justify-center">
+          <select
+            value={selectedTier}
+            onChange={(e) => setSelectedTier(e.target.value)}
+            className="w-full bg-white border border-gray-200 p-1.5 text-[13px] outline-none mb-4 rounded-sm"
+          >
+            {pkg.package_categories?.length > 0 ? pkg.package_categories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            )) : <option value="Standard">Standard</option>}
+          </select>
+
+          <div className="text-center mb-4">
+            <p className="text-[12px] text-gray-400 font-medium">Starting From</p>
+            <h4 className="text-[22px] font-black text-[#16a34a] leading-none my-1 tracking-tight">INR {Number(currentPrice || 0).toLocaleString('en-IN')}</h4>
+            <p className="text-[10px] text-gray-400 font-medium uppercase tracking-widest mt-1">Per Person</p>
+          </div>
+
+          <button
+            onClick={() => navigate(`/holiday/${pkg.id}`)}
+            className="w-full bg-white border border-[#16a34a] text-[#16a34a] py-2 text-[13px] font-bold hover:bg-green-50 transition-colors rounded-sm"
+          >
+            Enquire
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const Holidays = () => {
   const navigate = useNavigate();
@@ -50,7 +313,23 @@ const Holidays = () => {
   const [selectedPkgTitle, setSelectedPkgTitle] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewDetailsPkg, setViewDetailsPkg] = useState(null);
+
+  const handleOpenPreview = async (pkg) => {
+    setSelectedPkgTitle(pkg.title);
+    setViewDetailsPkg(pkg); // Set initial data from list
+    
+    try {
+      // Fetch full details to get itinerary descriptions and other extra fields
+      const res = await api.get(`/api/packages/${pkg.id}/`);
+      if (res.data) {
+        setViewDetailsPkg(res.data);
+      }
+    } catch (err) {
+      console.error("Error fetching full package details:", err);
+    }
+  };
   const [emailModalPkg, setEmailModalPkg] = useState(null);
+  const [activePricePopup, setActivePricePopup] = useState(null);
   const [sharingEmail, setSharingEmail] = useState("");
   const [sendingEmail, setSendingEmail] = useState(false);
 
@@ -63,18 +342,18 @@ const Holidays = () => {
   useEffect(() => {
     setLoading(true);
     // Fetch packages
-    axios.get("/api/packages/")
+    api.get("/api/packages/")
       .then((res) => setPackages(res.data))
       .catch((err) => console.error("Error fetching packages:", err))
       .finally(() => setLoading(false));
 
     // Fetch destinations
-    axios.get("/api/destinations/")
+    api.get("/api/destinations/")
       .then((res) => setDestinationsList(res.data))
       .catch((err) => console.error("Error fetching destinations:", err));
 
     // Fetch starting cities
-    axios.get("/api/starting-cities/")
+    api.get("/api/starting-cities/")
       .then((res) => setStartingCitiesList(res.data))
       .catch((err) => console.error("Error fetching starting cities:", err));
   }, []);
@@ -87,6 +366,10 @@ const Holidays = () => {
       }
       if (!event.target.closest(".startcity-dropdown-container")) {
         setIsStartCityOpen(false);
+      }
+      // Close price popup when clicking outside
+      if (!event.target.closest(".holiday-price-info-container")) {
+        setActivePricePopup(null);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -103,19 +386,12 @@ const Holidays = () => {
   );
 
   // Helper to fix image URLs
-  const getImageUrl = (url) => {
-    if (!url) return "";
-    if (url.startsWith("http")) {
-      return url.replace("http://localhost:8000", "").replace("http://127.0.0.1:8000", "");
-    }
-    return url;
-  };
 
   const generateShareText = (pkg) => {
     let text = `Hello, please find details with regards to your holiday query for:
 ${pkg.title}
 Duration: ${pkg.days} Days / ${pkg.days - 1} Nights
-Starting From: ₹ ${Number(pkg.Offer_price || 0).toLocaleString()}
+Starting From: ₹ ${Number(pkg.Offer_price || 0).toLocaleString('en-IN')}
 
 ${pkg.description ? `Description:\n${pkg.description}\n` : ""}
 Highlights:
@@ -124,7 +400,7 @@ ${pkg.highlights?.map(h => `• ${h.text}`)?.join("\n") || "• Accommodation\n�
 ${pkg.inclusions?.length > 0 ? `Inclusions:\n${pkg.inclusions.map(inc => `• ${inc.text}`).join("\n")}\n` : ""}
 ${pkg.exclusions?.length > 0 ? `Exclusions:\n${pkg.exclusions.map(exc => `• ${exc.text}`).join("\n")}\n` : ""}
 Itinerary Summary:
-${pkg.itinerary?.map(day => `Day ${day.day_number}: ${day.title}`)?.join("\n") || ""}
+${pkg.itinerary?.map(day => `Day ${day.day_number}: ${day.title}${day.description ? `\n  (${day.description})` : ""}`)?.join("\n") || ""}
 
 Destinations: ${pkg.starting_city}${pkg.destinations?.length > 0 ? " • " + pkg.destinations.map(d => d.name).join(" • ") : ""}
 
@@ -132,6 +408,12 @@ Thank you for choosing goimomi.com
 Contact : +91 6382220393
 Email : hello@goimomi.com`;
     return text;
+  };
+
+  const generateItineraryOnlyText = (pkg) => {
+    if (!pkg.itinerary || pkg.itinerary.length === 0) return "No itinerary details available.";
+    return `Itinerary Summary for ${pkg.title}:
+${pkg.itinerary.map(day => `Day ${day.day_number}: ${day.title}${day.description ? `\n  - ${day.description}` : ""}`).join("\n\n")}`;
   };
 
   const loadImage = (url) => {
@@ -146,140 +428,208 @@ Email : hello@goimomi.com`;
   const downloadPackagePDF = async (pkg) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
-    let yPos = 20;
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const sidebarWidth = 50;
+    const padding = 15;
 
-    // Logo / Header
-    doc.setFillColor(255, 255, 255); // White background
-    doc.rect(0, 0, pageWidth, 40, 'F');
+    // Helper functions
+    const addHeader = (doc, title) => {
+      doc.setFillColor(255, 255, 255);
+      doc.rect(0, 0, pageWidth, 25, 'F');
+      doc.addImage(goimomilogo, 'PNG', padding, 5, 40, 12);
+      doc.setTextColor(156, 163, 175);
+      doc.setFontSize(8);
+      doc.text(title, pageWidth - padding, 12, { align: "right" });
+      doc.setDrawColor(243, 244, 246);
+      doc.line(padding, 20, pageWidth - padding, 20);
+    };
 
-    try {
-      const logo = await loadImage(goimomilogo);
-      doc.addImage(logo, 'PNG', 15, 8, 50, 15);
-    } catch (error) {
-      console.error("Failed to load logo", error);
-      doc.setTextColor(20, 83, 45); // #14532d
-      doc.setFontSize(22);
-      doc.setFont("helvetica", "bold");
-      doc.text("goimomi.com", 15, 25);
+    const addFooter = (doc, pageNum, totalPages) => {
+      doc.setTextColor(156, 163, 175);
+      doc.setFontSize(8);
+      doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth - padding, pageHeight - 10, { align: "right" });
+      doc.text("© goimomi.com | +91 6382220393 | hello@goimomi.com", padding, pageHeight - 10);
+    };
+
+    // PAGE 1: COVER
+    // Vertical strip of images on the left (2 columns)
+    doc.setFillColor(248, 250, 252);
+    doc.rect(0, 0, sidebarWidth, pageHeight, 'F');
+
+    const baseImgs = [pdfImg1, pdfImg2, pdfImg3, pdfImg4, pdfImg5, pdfImg6, pdfImg7, pdfImg8, pdfImg9, pdfImg10, pdfImg11, pdfImg12, pdfImg13, pdfImg14, pdfImg15, pdfImg16];
+    const imgSize = 24; // each image cell height (no gap)
+    const colW = sidebarWidth / 2;
+    let sidebarY = 0;
+    let imgIndex = 0;
+    while (sidebarY + imgSize <= pageHeight) {
+      try {
+        doc.addImage(baseImgs[imgIndex % baseImgs.length], 'JPEG', 0, sidebarY, colW, imgSize, undefined, 'FAST');
+        doc.addImage(baseImgs[(imgIndex + 1) % baseImgs.length], 'JPEG', colW, sidebarY, colW, imgSize, undefined, 'FAST');
+      } catch (e) { }
+      sidebarY += imgSize;
+      imgIndex += 2;
     }
 
-    doc.setTextColor(20, 83, 45); // #14532d
-    doc.setFontSize(9);
+    // Main Content
+    let centerX = sidebarWidth + (pageWidth - sidebarWidth) / 2;
+
+    // Logo
+    try {
+      doc.addImage(goimomilogo, 'PNG', centerX - 30, 30, 60, 20);
+    } catch (e) { }
+
+    // Title
+    doc.setTextColor(31, 41, 55);
     doc.setFont("helvetica", "bold");
-    doc.text("Your Premium Holiday Partner", 15, 30);
-    doc.text("+91 6382220393 | hello@goimomi.com", pageWidth - 15, 30, { align: "right" });
+    doc.setFontSize(22);
+    const titleLines = doc.splitTextToSize(pkg.title.toUpperCase(), pageWidth - sidebarWidth - 30);
+    doc.text(titleLines, centerX, 90, { align: "center" });
 
-    yPos = 55;
+    // Subtitle (City & Nights)
+    doc.setTextColor(107, 114, 128);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${pkg.starting_city} (${pkg.nights || pkg.days - 1}N)`, centerX, 110, { align: "center" });
 
-    // Package Title
+    // Category / Land
+    doc.setTextColor(31, 41, 55);
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text(pkg.category || "India", centerX, 122, { align: "center" });
+
+
+
+    // PAGE 2: TITLE, DESCRIPTION, HIGHLIGHTS
+    doc.addPage();
+    addHeader(doc, pkg.title);
+
+    let y = 35;
     doc.setTextColor(31, 41, 55);
     doc.setFontSize(18);
     doc.setFont("helvetica", "bold");
-    doc.text(pkg.title, 15, yPos);
-    yPos += 10;
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "normal");
-    doc.text(`${pkg.days} Days / ${pkg.days - 1} Nights | Starting choice - ${pkg.starting_city}`, 15, yPos);
-    yPos += 15;
+    doc.text(pkg.title, padding, y);
+    y += 12;
 
-    // Package Image
-    try {
-      const imgUrl = getImageUrl(pkg.card_image);
-      const img = new Image();
-      img.crossOrigin = "Anonymous";
-      img.src = imgUrl;
-      await new Promise((resolve) => {
-        img.onload = resolve;
-        img.onerror = resolve;
-      });
-      if (img.complete && img.naturalWidth > 0) {
-        const imgWidth = pageWidth - 30;
-        const imgHeight = (img.naturalHeight * imgWidth) / img.naturalWidth;
-        const finalHeight = Math.min(imgHeight, 80);
-        doc.addImage(img, 'JPEG', 15, yPos, imgWidth, finalHeight);
-        yPos += finalHeight + 15;
-      }
-    } catch (e) {
-      console.log("Image load error for PDF", e);
-      yPos += 5;
+    // Overview Title
+    doc.setFontSize(14);
+    doc.text("Trip Overview", padding, y);
+    y += 8;
+
+    // Description
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(75, 85, 99);
+    if (pkg.description) {
+      const descLines = doc.splitTextToSize(pkg.description, pageWidth - (padding * 2));
+      doc.text(descLines, padding, y);
+      y += (descLines.length * 5) + 15;
     }
 
-    // Highlights & Description
-    const addSection = (title, items) => {
-      if (!items || items.length === 0) return;
-      if (yPos > 250) { doc.addPage(); yPos = 20; }
-      doc.setTextColor(20, 83, 45);
-      doc.setFontSize(13);
-      doc.setFont("helvetica", "bold");
-      doc.text(title, 15, yPos);
-      yPos += 7;
-      doc.setTextColor(75, 85, 99);
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-
-      const list = Array.isArray(items) ? items : [items];
-      list.forEach(item => {
-        const text = typeof item === 'object' ? item.text : item;
-        if (text) {
-          const splitText = doc.splitTextToSize(`• ${text}`, pageWidth - 40);
-          doc.text(splitText, 20, yPos);
-          yPos += (splitText.length * 5) + 2;
-          if (yPos > 270) { doc.addPage(); yPos = 20; }
-        }
-      });
-      yPos += 5;
-    };
-
-    addSection("Destinations", pkg.destinations?.map(d => d.name));
-    addSection("Package Highlights", pkg.highlights);
-
-    // Itinerary
-    if (pkg.itinerary && pkg.itinerary.length > 0) {
-      if (yPos > 240) { doc.addPage(); yPos = 20; }
-      doc.setTextColor(20, 83, 45);
+    // Highlights
+    if (pkg.highlights && pkg.highlights.length > 0) {
+      doc.setTextColor(31, 41, 55);
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
-      doc.text("Day Wise Itinerary", 15, yPos);
-      yPos += 10;
+      doc.text("Trip Highlights", padding, y);
+      y += 10;
 
-      pkg.itinerary.forEach((day) => {
-        if (yPos > 250) { doc.addPage(); yPos = 20; }
-        doc.setFillColor(249, 250, 251);
-        doc.roundedRect(15, yPos, pageWidth - 30, 10, 2, 2, 'F');
-        doc.setTextColor(20, 83, 45);
+      pkg.highlights.forEach(h => {
+        doc.setFillColor(20, 83, 45); // Goimomi Green
+        doc.circle(padding + 2, y - 1, 1, 'F');
+        doc.setTextColor(75, 85, 99);
         doc.setFontSize(10);
-        doc.setFont("helvetica", "bold");
-        doc.text(`Day ${day.day_number}: ${day.title}`, 20, yPos + 7);
-        yPos += 15;
+        doc.setFont("helvetica", "normal");
+        doc.text(h.text, padding + 7, y);
+        y += 7;
+        if (y > pageHeight - 30) {
+          addFooter(doc, 2, 4);
+          doc.addPage();
+          addHeader(doc, pkg.title);
+          y = 35;
+        }
+      });
+    }
+    addFooter(doc, 2, 4);
 
+    // PAGE 3: DAY WISE ITINERARY
+    doc.addPage();
+    addHeader(doc, "Day Wise Itinerary");
+    y = 35;
+
+    if (pkg.itinerary && pkg.itinerary.length > 0) {
+      pkg.itinerary.forEach((day, index) => {
+        if (y > pageHeight - 50) {
+          addFooter(doc, 3, 4);
+          doc.addPage();
+          addHeader(doc, "Day Wise Itinerary (Contd.)");
+          y = 35;
+        }
+
+        // Day Header
+        doc.setFillColor(243, 244, 246);
+        doc.rect(padding, y, pageWidth - (padding * 2), 10, 'F');
+        doc.setTextColor(20, 83, 45);
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "bold");
+        doc.text(`DAY ${day.day_number}: ${day.title}`, padding + 5, y + 7);
+        y += 15;
+
+        // Day Description
         if (day.description) {
           doc.setTextColor(75, 85, 99);
           doc.setFontSize(9);
           doc.setFont("helvetica", "normal");
-          const splitDesc = doc.splitTextToSize(day.description, pageWidth - 40);
-          doc.text(splitDesc, 20, yPos);
-          yPos += (splitDesc.length * 4.5) + 5;
+          const splitDesc = doc.splitTextToSize(day.description, pageWidth - (padding * 2) - 10);
+          doc.text(splitDesc, padding + 5, y);
+          y += (splitDesc.length * 4.5) + 12;
         }
-
-        if (yPos > 270) { doc.addPage(); yPos = 20; }
       });
-      yPos += 5;
+    }
+    addFooter(doc, 3, 4);
+
+    // PAGE 4: INCLUSION & EXCLUSION
+    doc.addPage();
+    addHeader(doc, "Package Details & Policies");
+    y = 35;
+
+    // Inclusions
+    if (pkg.inclusions && pkg.inclusions.length > 0) {
+      doc.setTextColor(20, 83, 45);
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("What's Included", padding, y);
+      y += 10;
+
+      doc.setTextColor(75, 85, 99);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      pkg.inclusions.forEach(inc => {
+        doc.text(`• ${inc.text}`, padding + 5, y);
+        y += 7;
+        if (y > pageHeight - 30) { doc.addPage(); y = 35; }
+      });
+      y += 15;
     }
 
-    addSection("Inclusions", pkg.inclusions);
-    addSection("Exclusions", pkg.exclusions);
+    // Exclusions
+    if (pkg.exclusions && pkg.exclusions.length > 0) {
+      doc.setTextColor(220, 38, 38); // Red
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("What's Excluded", padding, y);
+      y += 10;
 
-
-
-    // Footer
-    const totalPages = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= totalPages; i++) {
-      doc.setPage(i);
-      doc.setTextColor(156, 163, 175);
-      doc.setFontSize(8);
-      doc.text(`Page ${i} of ${totalPages}`, pageWidth - 15, 285, { align: "right" });
-      doc.text("Thank you for choosing goimomi.com | +91 6382220393", 15, 285);
+      doc.setTextColor(75, 85, 99);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      pkg.exclusions.forEach(exc => {
+        doc.text(`• ${exc.text}`, padding + 5, y);
+        y += 7;
+        if (y > pageHeight - 30) { doc.addPage(); y = 35; }
+      });
     }
+
+    addFooter(doc, 4, 4);
 
     doc.save(`GoImomi_${pkg.title.replace(/\s+/g, '_')}.pdf`);
   };
@@ -293,7 +643,7 @@ Email : hello@goimomi.com`;
     const body = generateShareText(emailModalPkg);
 
     try {
-      await axios.post('/api/send-visa-details/', {
+      await api.post('/api/send-visa-details/', {
         email: sharingEmail,
         subject,
         body
@@ -418,7 +768,13 @@ Email : hello@goimomi.com`;
                       >
                         <div className="flex flex-col">
                           <span>{dest.name}</span>
-                          {dest.country && <span className="text-[8px] text-gray-400 font-medium uppercase tracking-tight">{dest.country}</span>}
+                          {(dest.region || dest.country) && (
+                            <span className="text-[8px] text-gray-400 font-medium uppercase tracking-tight">
+                              {dest.region && dest.country
+                                ? `${dest.region} (${dest.country})`
+                                : dest.region || dest.country}
+                            </span>
+                          )}
                         </div>
                       </li>
                     ))
@@ -549,7 +905,7 @@ Email : hello@goimomi.com`;
                 Budget
               </label>
               <span className="text-[10px] font-black text-[#14532d] bg-green-50 px-2 py-0.5 rounded-full border border-green-100">
-                ₹{budget[1].toLocaleString()}
+                ₹{Number(budget[1] || 0).toLocaleString('en-IN')}
               </span>
             </div>
             <div className="relative pt-3">
@@ -612,249 +968,147 @@ Email : hello@goimomi.com`;
         ) : (
           <div className="space-y-6">
             {filtered.map((pkg) => (
-              <div
+              <HolidayCard
                 key={pkg.id}
-                className="relative bg-white rounded-2xl shadow-sm hover:shadow-xl transition-shadow duration-300 overflow-hidden flex flex-col md:flex-row border border-gray-100"
-              >
-                {/* Share Bar */}
-                <div className="absolute top-3 right-3 flex items-center gap-2 bg-black/60 backdrop-blur-md px-2 py-1.5 rounded-xl border border-white/10 z-20 transition-all hover:bg-black/80 shadow-lg">
-                  <div className="flex items-center gap-1.5 text-white/90 font-bold text-[9px] uppercase tracking-wider border-r border-white/20 pr-2">
-                    <Share2 size={11} className="text-white/70" />
-                    <span className="hidden sm:inline">Share :</span>
-                  </div>
-                  <div className="flex items-center gap-2.5">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const text = generateShareText(pkg);
-                        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-                      }}
-                      className="flex items-center gap-1 text-white hover:text-green-400 font-bold text-[9px] transition-colors"
-                      title="Share on WhatsApp"
-                    >
-                      <MessageCircle size={12} />
-                      WhatsApp
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEmailModalPkg(pkg);
-                      }}
-                      className="flex items-center gap-1 text-white hover:text-blue-400 font-bold text-[9px] transition-colors"
-                      title="Share via Email"
-                    >
-                      <Mail size={12} />
-                      Email
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        downloadPackagePDF(pkg);
-                      }}
-                      className="flex items-center gap-1 text-white hover:text-red-400 font-bold text-[9px] transition-colors"
-                      title="Download PDF"
-                    >
-                      <FileDown size={12} />
-                      PDF
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setViewDetailsPkg(pkg);
-                      }}
-                      className="flex items-center gap-1 text-yellow-500 hover:text-yellow-400 font-bold text-[9px] transition-colors"
-                      title="Quick View"
-                    >
-                      <Eye size={12} />
-                      View
-                    </button>
-                  </div>
-                </div>
-
-                {/* IMAGE SECTION */}
-                <div className="relative w-full md:w-64 h-48 md:h-64 overflow-hidden">
-                  <img
-                    src={getImageUrl(pkg.card_image)}
-                    onError={(e) => { e.target.src = "https://via.placeholder.com/400x300?text=Package+Image" }}
-                    className="w-full h-full object-cover transform hover:scale-110 transition-transform duration-500"
-                    alt={pkg.title}
-                  />
-                  <div className="absolute top-4 left-4 flex flex-col gap-2">
-                    <span className="bg-black/70 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full font-medium">
-                      {pkg.days} Days / {pkg.days - 1} Nights
-                    </span>
-                    {pkg.with_flight && (
-                      <span className="bg-green-600/90 backdrop-blur-md text-white text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider flex items-center gap-1">
-                        ✈️ Flights Included
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* CONTENT SECTION */}
-                <div className="flex-1 p-5 flex flex-col justify-between">
-                  <div>
-                    <div className="flex justify-between items-start">
-                      <h3 className="text-lg font-bold text-gray-800 leading-tight mb-1 hover:text-[#14532d] transition-colors cursor-pointer" onClick={() => navigate(`/holiday/${pkg.id}`)}>
-                        {pkg.title}
-                      </h3>
-                      <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded text-yellow-700 text-xs font-bold">
-                        ⭐ 4.5
-                      </div>
-                    </div>
-
-                    <p className="text-gray-500 text-sm flex items-center gap-1.5 mb-4">
-                      <span className="text-[#14532d]">📍</span>
-                      {pkg.starting_city}
-                      {pkg.destinations && pkg.destinations.length > 0 &&
-                        ` • ${pkg.destinations.map(d => `${d.name}`).join(" • ")}`}
-                    </p>
-
-                    <div className="grid grid-cols-2 gap-y-2 gap-x-4">
-                      {(pkg.highlights?.length ? pkg.highlights.slice(0, 4) : [
-                        { text: "Accommodation" }, { text: "Daily Breakfast" }, { text: "Sightseeing" }, { text: "Transfers" }
-                      ]).map((h, index) => (
-                        <div key={index} className="flex items-center gap-2 text-gray-600 text-sm">
-                          <span className="text-[#14532d]">✓</span>
-                          <span className="truncate">{h.text}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
-                    <div>
-                      <p className="text-gray-400 text-xs font-medium uppercase tracking-wider">Starting from</p>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-xl font-black text-gray-900 leading-none">
-                          ₹ {Number(pkg.Offer_price || 0).toLocaleString()}
-                        </span>
-                        {Number(pkg.price) > Number(pkg.Offer_price) && (
-                          <span className="text-gray-400 line-through text-sm">
-                            ₹ {Number(pkg.price || 0).toLocaleString()}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-gray-500 text-[10px] mt-0.5">*per person</p>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <button
-                        className="bg-[#14532d] text-white px-8 py-2.5 rounded-xl text-sm font-bold hover:bg-[#0f4022] hover:shadow-lg transition-all transform active:scale-95"
-                        onClick={() => navigate(`/holiday/${pkg.id}`)}
-                      >
-                        View Details
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                pkg={pkg}
+                navigate={navigate}
+                generateShareText={generateShareText}
+                setEmailModalPkg={setEmailModalPkg}
+                downloadPackagePDF={downloadPackagePDF}
+                setViewDetailsPkg={handleOpenPreview}
+              />
             ))}
           </div>
         )}
       </div>
 
-      <FormModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        packageType={selectedPkgTitle}
+      <FormModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        packageType={selectedPkgTitle} 
+        packageData={viewDetailsPkg}
       />
 
       {viewDetailsPkg && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setViewDetailsPkg(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center px-4 py-3 border-b border-gray-100 bg-gray-50/50">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-2 bg-black/60 backdrop-blur-sm" onClick={() => setViewDetailsPkg(null)}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-[400px] overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center px-3 py-2 border-b border-gray-100 bg-white gap-2">
               <button
                 onClick={() => {
                   const text = generateShareText(viewDetailsPkg);
                   navigator.clipboard.writeText(text);
-                  alert("Details copied to clipboard!");
+                  alert("Full details copied to clipboard!");
                 }}
-                className="flex items-center gap-1.5 text-[#14532d] font-bold text-[10px] hover:bg-green-50 px-3 py-1.5 rounded-lg transition-all border border-green-100 uppercase tracking-wider"
+                className="flex items-center gap-1 text-[#16a34a] font-bold text-[9px] hover:bg-green-50 px-2 py-1 rounded-md transition-all border border-[#16a34a]/30 uppercase shadow-sm"
               >
-                <Copy size={12} />
-                Copy Text
+                <Copy size={10} />
+                <span>FULL</span>
               </button>
-              <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-widest">ITINERARY PREVIEW</h3>
-              <button onClick={() => setViewDetailsPkg(null)} className="text-gray-400 hover:text-gray-600 transition-colors">
+              <button
+                onClick={() => {
+                  const text = generateItineraryOnlyText(viewDetailsPkg);
+                  navigator.clipboard.writeText(text);
+                  alert("Itinerary copied to clipboard!");
+                }}
+                className="flex items-center gap-1 text-[#16a34a] font-bold text-[9px] hover:bg-green-50 px-2 py-1 rounded-md transition-all border border-[#16a34a]/30 uppercase shadow-sm"
+              >
+                <Copy size={10} />
+                <span>ITRY</span>
+              </button>
+              
+              <div className="flex-1 text-center">
+                <h3 className="text-[11px] font-black text-gray-300 uppercase tracking-widest">PREVIEW</h3>
+              </div>
+
+              <button onClick={() => setViewDetailsPkg(null)} className="text-gray-400 hover:text-gray-600 transition-colors ml-auto">
                 <X size={20} />
               </button>
             </div>
-            <div className="p-5 max-h-[75vh] overflow-y-auto custom-scrollbar">
-              <div className="font-sans text-[12px] text-gray-700 leading-relaxed whitespace-pre-wrap">
-                <p>Hello, please find details with regards to your holiday query for:</p>
-                <p className="font-bold text-[#14532d]">{viewDetailsPkg.title}</p>
-                <p>Duration: {viewDetailsPkg.days} Days / {viewDetailsPkg.days - 1} Nights</p>
-                <p>Starting From: ₹ {Number(viewDetailsPkg.Offer_price || 0).toLocaleString()}</p>
+
+            {/* Content */}
+            <div className="p-4 max-h-[75vh] overflow-y-auto custom-scrollbar">
+              <div className="font-sans text-[11px] text-gray-700 leading-snug space-y-3">
+                <div>
+                  <p className="mb-1 text-gray-400 text-[10px]">Hello, find details for your query:</p>
+                  <p className="font-bold text-[#16a34a] text-[13px] mb-0.5 leading-tight">{viewDetailsPkg.title}</p>
+                  <p className="text-gray-600 font-bold">Duration: {viewDetailsPkg.days}D / {viewDetailsPkg.nights || viewDetailsPkg.days - 1}N</p>
+                  <p className="text-[#16a34a] font-black text-[12px]">Starting: ₹ {Number(viewDetailsPkg.Offer_price || 0).toLocaleString('en-IN')}</p>
+                </div>
 
                 {viewDetailsPkg.description && (
-                  <div className="mt-4">
-                    <p className="font-bold">Description:</p>
-                    <p className="text-gray-600 italic">{viewDetailsPkg.description}</p>
+                  <div>
+                    <p className="font-bold text-gray-800 border-b border-gray-50 mb-1">Description:</p>
+                    <p className="text-gray-500 italic leading-tight">{viewDetailsPkg.description}</p>
                   </div>
                 )}
 
-                <div className="mt-4">
-                  <p className="font-bold">Highlights:</p>
-                  <div className="mt-0.5">
-                    {viewDetailsPkg.highlights?.length ? viewDetailsPkg.highlights.map((h, i) => (
-                      <p key={i}>• {h.text}</p>
-                    )) : ["Accommodation", "Daily Breakfast", "Sightseeing", "Transfers"].map((text, i) => (
-                      <p key={i}>• {text}</p>
-                    ))}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <div>
+                      <p className="font-bold text-gray-800 border-b border-gray-50 mb-1">Highlights & Inclusions:</p>
+                      <div className="space-y-0.5">
+                        {(viewDetailsPkg.highlights?.length ? viewDetailsPkg.highlights : [{text: "Accommodation"}, {text: "Daily Breakfast"}, {text: "Sightseeing"}, {text: "Transfers"}]).map((h, i) => (
+                          <p key={i} className="text-gray-600">• {h.text}</p>
+                        ))}
+                      </div>
+                    </div>
+
+                    {viewDetailsPkg.inclusions?.length > 0 && (
+                      <div className="bg-green-50/30 p-2 rounded border border-green-50">
+                        <p className="font-bold text-[#14532d] text-[10px] uppercase mb-1">Inclusions:</p>
+                        <div className="space-y-0.5">
+                          {viewDetailsPkg.inclusions.map((inc, i) => (
+                            <p key={i} className="text-green-700">✓ {inc.text}</p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {viewDetailsPkg.exclusions?.length > 0 && (
+                      <div className="bg-red-50/30 p-2 rounded border border-red-50">
+                        <p className="font-bold text-red-800 text-[10px] uppercase mb-1">Exclusions:</p>
+                        <div className="space-y-0.5">
+                          {viewDetailsPkg.exclusions.map((exc, i) => (
+                            <p key={i} className="text-red-600">× {exc.text}</p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
+
+                  {viewDetailsPkg.itinerary?.length > 0 && (
+                    <div className="border-l border-gray-100 pl-4">
+                      <p className="font-bold text-gray-800 border-b border-gray-50 mb-1">Itinerary Summary:</p>
+                      <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+                        {viewDetailsPkg.itinerary.map((day, i) => (
+                          <div key={i} className="bg-gray-50/50 p-1.5 rounded">
+                            <p className="font-bold text-gray-700 text-[9px] leading-tight">Day {day.day_number}: {day.title}</p>
+                            {day.description && <p className="text-gray-400 italic mt-0.5 ml-1 leading-tight text-[8px]">{day.description}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {viewDetailsPkg.inclusions?.length > 0 && (
-                  <div className="mt-4">
-                    <p className="font-bold">Inclusions:</p>
-                    <div className="mt-0.5">
-                      {viewDetailsPkg.inclusions.map((inc, i) => (
-                        <p key={i}>• {inc.text}</p>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {viewDetailsPkg.exclusions?.length > 0 && (
-                  <div className="mt-4">
-                    <p className="font-bold">Exclusions:</p>
-                    <div className="mt-0.5">
-                      {viewDetailsPkg.exclusions.map((exc, i) => (
-                        <p key={i}>• {exc.text}</p>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {viewDetailsPkg.itinerary?.length > 0 && (
-                  <div className="mt-4">
-                    <p className="font-bold">Itinerary Summary:</p>
-                    <div className="mt-0.5">
-                      {viewDetailsPkg.itinerary.map((day, i) => (
-                        <p key={i}>Day {day.day_number}: {day.title}</p>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <p className="font-bold">Destinations: <span className="font-normal text-gray-600">{viewDetailsPkg.starting_city}{viewDetailsPkg.destinations?.length > 0 ? " • " + viewDetailsPkg.destinations.map(d => d.name).join(" • ") : ""}</span></p>
+                <div>
+                   <p className="font-bold text-gray-800 text-[10px]">
+                    Destinations: <span className="font-normal text-gray-500 ml-1">
+                      {viewDetailsPkg.starting_city || "Any City"}
+                      {viewDetailsPkg.destinations?.length > 0 
+                        ? " • " + viewDetailsPkg.destinations.map(d => d.name).join(" • ") 
+                        : " • Srinagar • Srinagar"}
+                    </span>
+                  </p>
                 </div>
 
-                <div className="mt-6 space-y-1 border-emerald-500/20 border-l-2 pl-3 bg-green-50/30 p-2 rounded-r-lg">
-                  <p className="italic text-[11px] text-gray-500">Thank you for choosing goimomi.com</p>
-                  <p className="font-bold text-[#14532d] text-[12px]">Contact : +91 6382220393</p>
-                  <p className="text-gray-600 font-medium text-[11px]">Email : hello@goimomi.com</p>
-                </div>
-
-                <div className="mt-6 flex justify-center">
-                  <button
-                    onClick={() => navigate(`/holiday/${viewDetailsPkg.id}`)}
-                    className="bg-[#14532d] text-white px-8 py-2 rounded-xl text-[10px] font-black hover:bg-[#0f4022] transition-all shadow-md active:scale-95 uppercase tracking-widest"
-                  >
-                    View Full Itinerary
-                  </button>
+                <div className="mt-4 pt-3 border-t border-gray-50">
+                  <div className="bg-[#f0f9f1] border-l-[2px] border-[#16a34a] p-2 rounded-r-md space-y-0.5">
+                    <p className="italic text-[10px] text-gray-400">Thank you for choosing goimomi.com</p>
+                    <p className="font-bold text-[#16a34a] text-[12px]">Call: +91 6382220393</p>
+                    <p className="text-gray-500 font-medium text-[10px]">hello@goimomi.com</p>
+                  </div>
                 </div>
               </div>
             </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import AdminTopbar from "../../components/admin/AdminTopbar";
-import axios from "axios";
+import api from "../../api";
 import { useNavigate } from "react-router-dom";
 import { Calendar, Users, MapPin, Plus, Trash2, ChevronDown, ChevronUp, X } from "lucide-react";
 
@@ -36,8 +36,8 @@ const UmrahEnquiryAdd = () => {
         const fetchData = async () => {
             try {
                 const [scRes, natRes] = await Promise.all([
-                    axios.get(`${API_BASE_URL}/starting-cities/`),
-                    axios.get(`${API_BASE_URL}/nationalities/`)
+                    api.get(`${API_BASE_URL}/starting-cities/`),
+                    api.get(`${API_BASE_URL}/nationalities/`)
                 ]);
                 setStartingCities(scRes.data);
                 setNationalities(natRes.data);
@@ -112,7 +112,7 @@ const UmrahEnquiryAdd = () => {
                 room_details: form.rooms
             };
 
-            await axios.post(`${API_BASE_URL}/umrah-form/`, payload);
+            await api.post(`${API_BASE_URL}/umrah-form/`, payload);
             alert("Umrah enquiry added successfully!");
             navigate("/admin/umrah-enquiries");
         } catch (err) {
@@ -135,7 +135,7 @@ const UmrahEnquiryAdd = () => {
             <AdminSidebar />
             <div className="flex-1 flex flex-col h-full overflow-hidden">
                 <AdminTopbar />
-                <div className="p-4">
+                <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
                     <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                         {/* Header */}
                         <div className="p-4 border-b border-gray-100 bg-[#14532d] text-white">

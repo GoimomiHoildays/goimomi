@@ -1,20 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../api";
 import { CheckCircle, Upload, ChevronDown, Check, User, Info, FileText, Image as ImageIcon, Trash2, X, Plus, MapPin } from "lucide-react";
+import { getImageUrl } from "../utils/imageUtils";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import visaBg from "../assets/Hero/visa_bg.jpg";
 
 
-const getImageUrl = (url) => {
-    if (!url) return "";
-    if (typeof url !== "string") return url;
-    if (url.startsWith("http")) {
-        return url.replace("http://localhost:8000", "").replace("http://127.0.0.1:8000", "");
-    }
-    return url;
-};
 
 const VisaApplication = () => {
     const { id } = useParams();
@@ -22,7 +15,13 @@ const VisaApplication = () => {
     const navigate = useNavigate();
 
     const visa = location.state?.visa;
-    const [appDepartureDate, setAppDepartureDate] = useState(location.state?.departureDate || "");
+    const getTomorrowDate = (days = 1) => {
+        const d = new Date();
+        d.setDate(d.getDate() + days);
+        return d.toISOString().split('T')[0];
+    };
+
+    const [appDepartureDate, setAppDepartureDate] = useState(location.state?.departureDate || getTomorrowDate(1));
     const [appReturnDate, setAppReturnDate] = useState(location.state?.returnDate || "");
     const citizenOf = location.state?.citizenOf || "India";
 
@@ -73,6 +72,8 @@ const VisaApplication = () => {
 
     const [submitting, setSubmitting] = useState(false);
     const [showPriceDetails, setShowPriceDetails] = useState(false);
+    const [pricePopupOpen, setPricePopupOpen] = useState(false);
+    const pricePopupRef = useRef(null);
 
     // Refs for scrolling to sections
     const internalIdRef = useRef(null);
@@ -91,7 +92,7 @@ const VisaApplication = () => {
             const fetchVisa = async () => {
                 try {
                     setIsLoadingVisa(true);
-                    const response = await axios.get(`/api/visas/${id}/`);
+                    const response = await api.get(`/api/visas/${id}/`);
                     setVisaData(response.data);
                 } catch (error) {
                     console.error("Error fetching visa:", error);
@@ -114,13 +115,24 @@ const VisaApplication = () => {
     useEffect(() => {
         const fetchCountries = async () => {
             try {
-                const response = await axios.get("/api/countries/");
+                const response = await api.get("/api/countries/");
                 setCountries(Array.isArray(response.data) ? response.data : []);
             } catch (error) {
                 console.error("Error fetching countries:", error);
             }
         };
         fetchCountries();
+    }, []);
+
+    // Close price popup when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (pricePopupRef.current && !pricePopupRef.current.contains(event.target)) {
+                setPricePopupOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
     const handleApplicantChange = (index, field, value) => {
@@ -409,7 +421,7 @@ const VisaApplication = () => {
                 });
             });
 
-            await axios.post("/api/visa-applications/", formData, {
+            await api.post("/api/visa-applications/", formData, {
                 headers: { "Content-Type": "multipart/form-data" }
             });
 
@@ -1064,9 +1076,32 @@ const VisaApplication = () => {
                         <div className="flex justify-between items-center">
                             <h3 className="text-lg font-bold text-gray-900">Price Details</h3>
                         </div>
-                        <div className="flex justify-between items-center mt-4">
-                            <span className="text-gray-900 font-bold">Total Amount</span>
-                            <span className="text-2xl font-bold text-[#14532d]">₹{TOTAL_PRICE.toLocaleString()}</span>
+                        <div className="flex justify-between items-center mt-4 relative" ref={pricePopupRef}>
+                            <div className="flex items-center gap-1.5 ">
+                                <span className="text-gray-900 font-bold">Total Amount</span>
+                                <button
+                                    onClick={() => setPricePopupOpen(!pricePopupOpen)}
+                                    className="text-gray-400 hover:text-gray-600 transition-colors focus:outline-none"
+                                >
+                                    <svg className="w-4 h-4 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </button>
+                                {pricePopupOpen && (
+                                    <div className="absolute bottom-full left-0 mb-3 w-48 bg-white rounded-xl shadow-2xl border border-gray-100 z-[60] p-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                                        <div className="flex flex-col gap-1">
+                                            <p className="text-xs font-bold text-gray-900">Conditions Applied</p>
+                                            <div className="h-0.5 w-8 bg-[#14532d] rounded-full mb-1"></div>
+                                            <p className="text-[10px] text-gray-500 leading-relaxed font-medium">
+                                                Final prices include taxes and service charges. Subject to embassy rule changes.
+                                            </p>
+                                        </div>
+                                        {/* Arrow */}
+                                        <div className="absolute -bottom-1.5 left-2 w-3 h-3 bg-white border-b border-r border-gray-100 rotate-45"></div>
+                                    </div>
+                                )}
+                            </div>
+                            <span className="text-2xl font-bold text-[#14532d]">₹{TOTAL_PRICE.toLocaleString('en-IN')}</span>
                         </div>
                     </div>
 

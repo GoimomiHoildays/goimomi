@@ -14,7 +14,10 @@ import {
   Truck,
   LayoutDashboard,
   Flag,
-  Sun
+  Sun,
+  Calendar,
+  Car,
+  ClipboardList
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -36,6 +39,8 @@ const menu = [
           { name: "Manage Countries", key: "Countries" },
           { name: "Holiday Destinations", key: "Destinations" },
           { name: "Umrah Destinations" },
+          { name: "Starting Cities" },
+          { name: "Nationalities" },
         ]
       },
       {
@@ -58,21 +63,41 @@ const menu = [
         children: [
           { name: "Manage Packages", key: "Holiday Packages" },
           { name: "Itinerary Masters" },
+          { name: "Sightseeing Masters" },
+          { name: "Accommodations" },
         ]
       },
-      { name: "Nationalities", icon: <Flag size={18} /> },
+      {
+        name: "Vehicle Masters",
+        icon: <Car size={18} />,
+        isDropdown: true,
+        children: [
+          { name: "Manage Vehicles", key: "Vehicle Masters" },
+          { name: "Driver Masters" },
+          { name: "Pickup Point Masters" },
+          { name: "Route rate card" },
+        ]
+      },
+      {
+        name: "Booking",
+        icon: <ClipboardList size={18} />,
+        isDropdown: true,
+        children: [
+          { name: "Visa bookings" },
+          { name: "Cab Bookings" },
+        ]
+      },
 
-      { name: "Starting Cities", icon: <MapPin size={18} /> },
       {
         name: "Visas",
         icon: <FileText size={18} />,
         isDropdown: true,
         children: [
           { name: "Manage Visas", key: "Visas" },
-          { name: "Visa Applications" },
         ]
       },
       { name: "Suppliers", icon: <Truck size={18} /> },
+      { name: "Cruise Calendar", icon: <Calendar size={18} /> },
     ],
   },
 ];
@@ -84,6 +109,13 @@ const AdminSidebar = () => {
     const saved = localStorage.getItem("sidebarCollapsed");
     return saved === "true";
   });
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  useEffect(() => {
+    const handleToggle = () => setIsMobileOpen(prev => !prev);
+    window.addEventListener('admin-sidebar-toggle', handleToggle);
+    return () => window.removeEventListener('admin-sidebar-toggle', handleToggle);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("sidebarCollapsed", isCollapsed);
@@ -114,16 +146,28 @@ const AdminSidebar = () => {
   const handleChangeVisaApplication = () => navigate("/admin/visa-applications");
   const handleChangeStartingCity = () => navigate("/admin/starting-cities");
   const handleChangeItineraryMaster = () => navigate("/admin/itinerary-masters");
+  const handleChangeSightseeingMaster = () => navigate("/admin/sightseeing-masters");
   const handleChangeNationalities = () => navigate("/admin/nationalities");
   const handleChangeUsers = () => navigate("/admin/users");
   const handleChangeUmrahDestinations = () => navigate("/admin/umrah-destinations");
   const handleChangeCabEnquiry = () => navigate("/admin/cab-enquiries");
+  const handleChangeCabBooking = () => navigate("/admin/cab-bookings");
   const handleChangeCruiseEnquiry = () => navigate("/admin/cruise-enquiries");
   const handleChangeHotelEnquiry = () => navigate("/admin/hotel-enquiries");
   const handleAddUmrahDestinations = () => navigate("/admin/umrah-destinations/add");
   const handleAddStartingCity = () => navigate("/admin/starting-cities/add");
   const handleAddItineraryMaster = () => navigate("/admin/itinerary-masters/add");
+  const handleAddSightseeingMaster = () => navigate("/admin/sightseeing-masters/add");
   const handleAddNationality = () => navigate("/admin/nationalities/add");
+  const handleAddCruiseCalendar = () => navigate("/admin/cruise-calendar/add");
+  const handleAddVehicleMaster = () => navigate("/admin/vehicle-masters/add");
+  const handleChangeVehicleMaster = () => navigate("/admin/vehicle-masters");
+  const handleAddDriverMaster = () => navigate("/admin/driver-masters/add");
+  const handleChangeDriverMaster = () => navigate("/admin/driver-masters");
+  const handleAddRateCard = () => navigate("/admin/vehicle-rate-cards/add");
+  const handleChangeRateCard = () => navigate("/admin/vehicle-rate-cards");
+  const handleAddPickupPoint = () => navigate("/admin/pickup-point-masters/add");
+  const handleChangePickupPoint = () => navigate("/admin/pickup-point-masters");
 
   const getAddHandler = (item) => {
     const key = typeof item === 'string' ? item : (item.key || item.name);
@@ -133,6 +177,7 @@ const AdminSidebar = () => {
       case "Holiday Packages": return handleAddPackage;
       case "Starting Cities": return handleAddStartingCity;
       case "Itinerary Masters": return handleAddItineraryMaster;
+      case "Sightseeing Masters": return handleAddSightseeingMaster;
       case "Nationalities": return handleAddNationality;
       case "Holiday Enquiries": return handleAddHolidayEnquiry;
       case "Umrah Enquiries": return handleAddUmrahEnquiry;
@@ -140,6 +185,12 @@ const AdminSidebar = () => {
       case "Visas": return handleAddVisa;
       case "Countries": return () => navigate("/admin/countries/add");
       case "Suppliers": return () => navigate("/admin/suppliers/add");
+      case "Cruise Calendar": return handleAddCruiseCalendar;
+      case "Accommodations": return () => navigate("/admin/accommodations/add");
+      case "Vehicle Masters": return handleAddVehicleMaster;
+      case "Driver Masters": return handleAddDriverMaster;
+      case "Route rate card": return handleAddRateCard;
+      case "Pickup Point Masters": return handleAddPickupPoint;
       default: return undefined;
     }
   };
@@ -155,15 +206,23 @@ const AdminSidebar = () => {
       case "Umrah Enquiries": return handleChangeUmrahEnquiry;
       case "Starting Cities": return handleChangeStartingCity;
       case "Itinerary Masters": return handleChangeItineraryMaster;
+      case "Sightseeing Masters": return handleChangeSightseeingMaster;
       case "Nationalities": return handleChangeNationalities;
       case "Umrah Destinations": return handleChangeUmrahDestinations;
       case "Cab Enquiries": return handleChangeCabEnquiry;
       case "Cruise Enquiries": return handleChangeCruiseEnquiry;
       case "Hotel Enquiries": return handleChangeHotelEnquiry;
       case "Visas": return handleChangeVisa;
-      case "Visa Applications": return handleChangeVisaApplication;
+      case "Visa bookings": return handleChangeVisaApplication;
+      case "Cab Bookings": return handleChangeCabBooking;
       case "Countries": return () => navigate("/admin/countries");
       case "Suppliers": return () => navigate("/admin/suppliers");
+      case "Cruise Calendar": return () => navigate("/admin/cruise-calendar");
+      case "Accommodations": return () => navigate("/admin/accommodations");
+      case "Vehicle Masters": return handleChangeVehicleMaster;
+      case "Driver Masters": return handleChangeDriverMaster;
+      case "Route rate card": return handleChangeRateCard;
+      case "Pickup Point Masters": return handleChangePickupPoint;
       default: return undefined;
     }
   };
@@ -174,7 +233,10 @@ const AdminSidebar = () => {
       return;
     }
     const handler = getChangeHandler(item);
-    if (handler) handler();
+    if (handler) {
+      handler();
+      setIsMobileOpen(false); // Close on mobile after navigation
+    }
   };
 
   const renderItem = (item, isChild = false) => {
@@ -185,18 +247,18 @@ const AdminSidebar = () => {
       <div key={item.name}>
         <li
           onClick={() => handleRowClick(item)}
-          className={`group flex justify-between items-center px-3 py-3 border-b border-white/5 hover:bg-white/20 transition-all ${getChangeHandler(item) || isDropdown ? "cursor-pointer" : "cursor-default"
-            } ${isChild ? "pl-10 bg-black/10" : ""}`}
+          className={`group flex justify-between items-center px-2 py-1.5 border-b border-white/5 hover:bg-white/10 transition-all ${getChangeHandler(item) || isDropdown ? "cursor-pointer" : "cursor-default"
+            } ${isChild ? "pl-7 bg-black/10" : ""}`}
           title={isCollapsed ? item.name : ""}
         >
-          <div className="flex items-center gap-3">
-            <div className="text-green-400 group-hover:scale-110 transition-transform">
-              {item.icon || (isChild && <div className="w-1 h-1 bg-green-400 rounded-full" />)}
+          <div className="flex items-center gap-2">
+            <div className="text-green-400 group-hover:scale-110 transition-transform shrink-0">
+              {item.icon || (isChild && <div className="w-1.5 h-1.5 bg-green-400 rounded-full" />)}
             </div>
             {!isCollapsed && (
               <>
-                {isDropdown && (isOpen ? <ChevronDown size={14} className="text-gray-400" /> : <ChevronRight size={14} className="text-gray-400" />)}
-                <span className="text-sm font-medium text-gray-200 group-hover:text-white">{item.name}</span>
+                {isDropdown && (isOpen ? <ChevronDown size={14} className="text-gray-400 group-hover:text-gray-200 transition-colors" /> : <ChevronRight size={14} className="text-gray-400 group-hover:text-gray-200 transition-colors" />)}
+                <span className="text-sm font-medium text-gray-200 group-hover:text-white transition-colors leading-none">{item.name}</span>
               </>
             )}
           </div>
@@ -240,61 +302,73 @@ const AdminSidebar = () => {
   };
 
   return (
-    <aside
-      className={`${isCollapsed ? "w-20" : "w-80"} bg-[#14532d] text-white h-full transition-all duration-300 ease-in-out border-r border-white/10 flex flex-col z-50`}
-    >
-      {/* Header */}
-      <div className={`p-6 flex items-center ${isCollapsed ? "justify-center" : "justify-between"} border-b border-white/10`}>
-        {!isCollapsed && (
-          <h2
-            className="text-xl font-bold tracking-tighter text-white cursor-pointer hover:text-green-200 transition-colors"
-            onClick={() => navigate("/admin-dashboard")}
-          >
-            GOIMOMI <span className="text-white opacity-80">ADMIN</span>
-          </h2>
-        )}
-        {isCollapsed && (
-          <div onClick={() => navigate("/admin-dashboard")} className="cursor-pointer bg-[#1f7a45] w-8 h-8 rounded flex items-center justify-center font-bold">G</div>
-        )}
-      </div>
+    <>
+      {/* Mobile Overlay */}
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[45] lg:hidden transition-opacity duration-300"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
 
-      <button
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-1/2 -translate-y-1/2 bg-[#14532d] border border-white/10 text-white rounded-full p-1 shadow-xl hover:bg-[#1a6338] hover:scale-110 transition-all z-[60]"
+      <aside
+        className={`fixed lg:relative inset-y-0 left-0 z-50 ${isCollapsed ? "w-14" : "w-60"
+          } bg-[#14532d] text-white h-full transition-all duration-300 ease-in-out border-r border-white/10 flex flex-col ${isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          }`}
       >
-        {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-      </button>
+        {/* Header */}
+        <div className={`p-3 flex items-center ${isCollapsed ? "justify-center" : "justify-between"} border-b border-white/10`}>
+          {!isCollapsed && (
+            <h2
+              className="text-sm font-bold tracking-widest text-gray-200 cursor-pointer hover:text-white transition-colors uppercase"
+              onClick={() => navigate("/")}
+            >
+              GOIMOMI <span className="opacity-80 font-medium">ADMIN</span>
+            </h2>
+          )}
+          {isCollapsed && (
+            <div onClick={() => navigate("/")} className="cursor-pointer bg-[#1f7a45] w-7 h-7 rounded flex items-center justify-center font-bold text-xs">G</div>
+          )}
+        </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
-        {menu.map((section, idx) => (
-          <div key={idx} className="mt-6 mb-2">
-            {!isCollapsed && (
-              <h3 className="px-6 py-2 text-[10px] uppercase font-black tracking-widest text-gray-400">
-                {section.title}
-              </h3>
-            )}
-            {isCollapsed && <div className="h-[1px] bg-white/5 mx-4 my-2" />}
-
-            <ul className="mt-2">
-              {section.items.map((item) => renderItem(item))}
-            </ul>
-          </div>
-        ))}
-      </div>
-
-      {/* Footer / Dash Link */}
-      <div className="p-4 border-t border-white/10">
         <button
-          onClick={() => navigate("/admin-dashboard")}
-          className={`w-full flex items-center ${isCollapsed ? "justify-center" : "gap-3"} p-3 rounded-xl bg-white/10 hover:bg-white/20 transition-all`}
-          title="Dashboard"
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 bg-[#14532d] border border-white/20 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-lg hover:bg-[#1a6338] hover:scale-110 transition-all z-[60]"
         >
-          <LayoutDashboard size={20} className="text-green-400" />
-          {!isCollapsed && <span className="font-bold text-sm">Dashboard Hub</span>}
+          {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
-      </div>
-    </aside>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
+          {menu.map((section, idx) => (
+            <div key={idx} className="mt-4 mb-1">
+              {!isCollapsed && (
+                <h3 className="px-4 py-1.5 text-sm font-medium text-gray-200 uppercase tracking-widest opacity-60">
+                  {section.title}
+                </h3>
+              )}
+              {isCollapsed && <div className="h-[1px] bg-white/5 mx-4 my-2" />}
+
+              <ul className="mt-2">
+                {section.items.map((item) => renderItem(item))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer / Dash Link */}
+        <div className="p-3 border-t border-white/10">
+          <button
+            onClick={() => navigate("/admin-dashboard")}
+            className={`w-full flex items-center ${isCollapsed ? "justify-center" : "gap-2.5"} p-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-all group`}
+            title="Dashboard"
+          >
+            <LayoutDashboard size={16} className="text-green-400" />
+            {!isCollapsed && <span className="text-sm font-medium text-gray-200 group-hover:text-white transition-colors">Dashboard Hub</span>}
+          </button>
+        </div>
+      </aside>
+    </>
   );
 };
 

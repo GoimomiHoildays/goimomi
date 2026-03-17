@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../api";
 import { useNavigate, useParams } from "react-router-dom";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import AdminTopbar from "../../components/admin/AdminTopbar";
@@ -30,15 +30,15 @@ const SupplierEdit = () => {
     const [errors, setErrors] = useState({});
 
     const API_BASE_URL = "/api";
-    const serviceOptions = ["HOLIDAYS", "Visa", "Flight", "Hotel", "Attestation"];
+    const serviceOptions = ["HOLIDAYS", "Visa", "Flight", "Hotel", "Attestation", "Cab", "Cruise"];
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setLoading(true);
                 const [supplierRes, countriesRes] = await Promise.all([
-                    axios.get(`${API_BASE_URL}/suppliers/${id}/`),
-                    axios.get(`${API_BASE_URL}/countries/`)
+                    api.get(`${API_BASE_URL}/suppliers/${id}/`),
+                    api.get(`${API_BASE_URL}/countries/`)
                 ]);
 
                 const supplierData = supplierRes.data;
@@ -143,7 +143,7 @@ const SupplierEdit = () => {
         delete submitData.country_code;
 
         try {
-            const response = await axios.put(`${API_BASE_URL}/suppliers/${id}/`, submitData);
+            const response = await api.put(`${API_BASE_URL}/suppliers/${id}/`, submitData);
 
             if (response.status === 200) {
                 setMessage("Supplier updated successfully!");

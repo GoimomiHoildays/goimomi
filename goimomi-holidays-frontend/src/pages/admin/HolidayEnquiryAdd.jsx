@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from "react";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import AdminTopbar from "../../components/admin/AdminTopbar";
-import axios from "axios";
+import api from "../../api";
 import { useNavigate } from "react-router-dom";
 import { Calendar, Users, MapPin, Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 
 const HolidayEnquiryAdd = () => {
-    useEffect(() => {
-        console.log("HolidayEnquiryAdd Mounted");
-    }, []);
+
 
     const navigate = useNavigate();
     const API_BASE_URL = "/api";
@@ -38,13 +36,13 @@ const HolidayEnquiryAdd = () => {
         const fetchData = async () => {
             try {
                 const [scRes, natRes, destRes] = await Promise.all([
-                    axios.get(`${API_BASE_URL}/starting-cities/`),
-                    axios.get(`${API_BASE_URL}/nationalities/`),
-                    axios.get(`${API_BASE_URL}/destinations/`)
+                    api.get(`${API_BASE_URL}/starting-cities/`),
+                    api.get(`${API_BASE_URL}/nationalities/`),
+                    api.get(`${API_BASE_URL}/destinations/`)
                 ]);
-                setStartingCities(scRes.data);
-                setNationalities(natRes.data);
-                setUmrahDestinations(destRes.data);
+                setStartingCities(Array.isArray(scRes.data) ? scRes.data : (scRes.data?.results || []));
+                setNationalities(Array.isArray(natRes.data) ? natRes.data : (natRes.data?.results || []));
+                setUmrahDestinations(Array.isArray(destRes.data) ? destRes.data : (destRes.data?.results || []));
             } catch (err) {
                 console.error("Error fetching form data:", err);
             }
@@ -116,8 +114,7 @@ const HolidayEnquiryAdd = () => {
                 room_details: form.rooms
             };
 
-            await axios.post(`${API_BASE_URL}/holiday-form/`, payload);
-            alert("Enquiry added successfully!");
+            await api.post(`${API_BASE_URL}/holiday-form/`, payload);
             navigate("/admin/holiday-enquiries");
         } catch (err) {
             console.error(err);
@@ -139,7 +136,7 @@ const HolidayEnquiryAdd = () => {
             <AdminSidebar />
             <div className="flex-1 flex flex-col h-full overflow-hidden">
                 <AdminTopbar />
-                <div className="p-4">
+                <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
                     <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                         {/* Header */}
                         <div className="p-4 border-b border-gray-100 bg-[#14532d] text-white">

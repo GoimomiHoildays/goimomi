@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import AdminTopbar from "../../components/admin/AdminTopbar";
-import axios from "axios";
+import api from "../../api";
 import { useNavigate, useParams } from "react-router-dom";
 
 const UserEdit = () => {
@@ -25,7 +25,7 @@ const UserEdit = () => {
 
     const fetchUser = useCallback(async () => {
         try {
-            const response = await axios.get(`${API_BASE_URL}/users/${id}/`);
+            const response = await api.get(`${API_BASE_URL}/users/${id}/`);
             const data = response.data;
             setForm({
                 username: data.username || "",
@@ -61,10 +61,15 @@ const UserEdit = () => {
     const handleSave = async (redirectType) => {
         setError("");
         try {
-            await axios.put(`${API_BASE_URL}/users/${id}/`, form);
+            await api.put(`${API_BASE_URL}/users/${id}/`, form);
             alert("User updated successfully!");
             if (redirectType === 'save') {
                 navigate("/admin/users");
+            } else if (redirectType === 'save_add_another') {
+                navigate("/admin/users/add");
+            } else if (redirectType === 'save_continue') {
+                // Keep the current view but refresh the user data
+                fetchUser();
             }
         } catch (err) {
             console.error(err);
@@ -276,17 +281,23 @@ const UserEdit = () => {
                                 >
                                     Save
                                 </button>
-                                <button className="flex-1 md:flex-none bg-[#457b9d] hover:bg-[#345d7a] text-white px-4 py-2.5 rounded text-xs font-bold uppercase tracking-widest shadow-sm transition-all">
+                                <button
+                                    onClick={() => handleSave('save_add_another')}
+                                    className="flex-1 md:flex-none bg-[#457b9d] hover:bg-[#345d7a] text-white px-4 py-2.5 rounded text-xs font-bold uppercase tracking-widest shadow-sm transition-all"
+                                >
                                     Save and add another
                                 </button>
-                                <button className="flex-1 md:flex-none bg-[#457b9d] hover:bg-[#345d7a] text-white px-4 py-2.5 rounded text-xs font-bold uppercase tracking-widest shadow-sm transition-all">
+                                <button
+                                    onClick={() => handleSave('save_continue')}
+                                    className="flex-1 md:flex-none bg-[#457b9d] hover:bg-[#345d7a] text-white px-4 py-2.5 rounded text-xs font-bold uppercase tracking-widest shadow-sm transition-all"
+                                >
                                     Save and continue editing
                                 </button>
                             </div>
                             <button
                                 onClick={() => {
                                     if (window.confirm("Are you sure you want to delete this user? This action cannot be undone.")) {
-                                        axios.delete(`${API_BASE_URL}/users/${id}/`)
+                                        api.delete(`${API_BASE_URL}/users/${id}/`)
                                             .then(() => { navigate("/admin/users"); })
                                             .catch(() => alert("Error deleting user"));
                                     }

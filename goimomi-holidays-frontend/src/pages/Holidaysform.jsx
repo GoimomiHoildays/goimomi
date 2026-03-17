@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import api from "../api";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import SuccessModal from "../components/SuccessModal";
@@ -14,13 +14,19 @@ const HOLIDAY_TYPES = [
   "Ayurveda", "Yoga", "Medical Tourism", "Business", "MICE", "Educational", "Festival Tour"
 ];
 
-const HolidaysForm = ({ isOpen, onClose, packageType }) => {
+const HolidaysForm = ({ isOpen, onClose, packageType, packageData }) => {
   const [step, setStep] = useState(1);
 
   // Step 1 States (Umrah-style)
   const [cities, setCities] = useState([{ cityName: "", nights: 1 }]);
   const [startCity, setStartCity] = useState("");
-  const [travelDate, setTravelDate] = useState("");
+  const getTomorrowDate = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+  };
+
+  const [travelDate, setTravelDate] = useState(getTomorrowDate());
   const [nationality, setNationality] = useState("Indian");
 
   const [rooms, setRooms] = useState(1);
@@ -51,15 +57,15 @@ const HolidaysForm = ({ isOpen, onClose, packageType }) => {
   // Fetch Data
   React.useEffect(() => {
     if (isOpen) {
-      axios.get("/api/destinations/")
+      api.get("/api/destinations/")
         .then(res => setDestinationsList(res.data))
         .catch(err => console.error("Error fetching destinations:", err));
 
-      axios.get("/api/starting-cities/")
+      api.get("/api/starting-cities/")
         .then(res => setStartingCitiesList(res.data))
         .catch(err => console.error("Error fetching starting cities:", err));
 
-      axios.get("/api/nationalities/")
+      api.get("/api/nationalities/")
         .then(res => setNationalitiesList(res.data))
         .catch(err => console.error("Error fetching nationalities:", err));
     }
@@ -246,7 +252,7 @@ const HolidaysForm = ({ isOpen, onClose, packageType }) => {
     };
 
     try {
-      const response = await axios.post(
+      const response = await api.post(
         '/api/holiday-form/',
         payload,
         {
@@ -342,6 +348,42 @@ const HolidaysForm = ({ isOpen, onClose, packageType }) => {
                   <p className="text-gray-700 text-sm">
                     <span className="font-semibold">Selected Package:</span> {packageType}
                   </p>
+                  
+                  {/* Summary section in the Form */}
+                  {(packageData?.itinerary?.length > 0 || packageData?.highlights?.length > 0) && (
+                    <div className="mt-4 pt-3 border-t border-green-200">
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Highlights */}
+                        {packageData?.highlights?.length > 0 && (
+                          <div className="space-y-2">
+                             <p className="font-bold text-gray-800 text-[10px] uppercase tracking-wide">Highlights:</p>
+                             <div className="space-y-1 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                               {packageData.highlights.map((h, i) => (
+                                 <p key={i} className="text-[#14532d] text-[9px] font-medium border-l-2 border-green-200 pl-2 leading-tight">
+                                   {h.text}
+                                 </p>
+                               ))}
+                             </div>
+                          </div>
+                        )}
+
+                        {/* Itinerary */}
+                        {packageData?.itinerary?.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="font-bold text-gray-800 text-[10px] uppercase tracking-wide">Itinerary Summary:</p>
+                            <div className="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar border-l border-green-100 pl-3">
+                              {packageData.itinerary.map((day, i) => (
+                                <div key={i} className="bg-white/50 p-1.5 rounded border border-green-50">
+                                  <p className="font-bold text-gray-700 text-[9px] leading-tight">Day {day.day_number}: {day.title}</p>
+                                  {day.description && <p className="text-gray-500 italic mt-0.5 ml-1 leading-tight text-[8px]">{day.description}</p>}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -392,7 +434,13 @@ const HolidaysForm = ({ isOpen, onClose, packageType }) => {
                                 >
                                   <div className="flex flex-col">
                                     <span>{dest.name}</span>
-                                    {dest.country && <span className="text-[10px] text-gray-400 uppercase">{dest.country}</span>}
+                                    {(dest.region || dest.country) && (
+                                      <span className="text-[10px] text-gray-400 uppercase">
+                                        {dest.region && dest.country
+                                          ? `${dest.region} (${dest.country})`
+                                          : dest.region || dest.country}
+                                      </span>
+                                    )}
                                   </div>
                                 </li>
                               ))

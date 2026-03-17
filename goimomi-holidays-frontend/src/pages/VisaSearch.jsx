@@ -1,14 +1,22 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Home, Plane, Calendar, MapPin, ChevronDown, Zap, ShieldCheck, Headphones } from "lucide-react";
-import axios from "axios";
+import api from "../api";
 import visaBg from "../assets/Hero/visa_bg.jpg";
+import { getImageUrl } from "../utils/imageUtils";
 
 const VisaSearch = () => {
     const navigate = useNavigate();
     const [citizenOf, setCitizenOf] = useState("India");
     const [goingTo, setGoingTo] = useState("");
-    const [travelDate, setTravelDate] = useState("");
+
+    const getTomorrowDate = () => {
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        return d.toISOString().split('T')[0];
+    };
+
+    const [travelDate, setTravelDate] = useState(getTomorrowDate());
     const [returnDate, setReturnDate] = useState("");
 
     // Country Data State
@@ -32,9 +40,9 @@ const VisaSearch = () => {
             setLoading(true);
             try {
                 const [countriesRes, popularDestRes, popularVisasRes] = await Promise.all([
-                    axios.get("/api/countries/"),
-                    axios.get("/api/destinations/"),
-                    axios.get("/api/visas/?is_popular=true")
+                    api.get("/api/countries/"),
+                    api.get("/api/destinations/"),
+                    api.get("/api/visas/?is_popular=true")
                 ]);
                 setCountries(countriesRes.data);
                 setPopularDestinations(popularDestRes.data);
@@ -94,7 +102,7 @@ const VisaSearch = () => {
         <div className="min-h-screen bg-gray-50">
             {/* Hero Section with Search */}
             <div
-                className="relative pt-20 pb-32 overflow-hidden"
+                className="relative pt-20 pb-32 z-10"
                 style={{
                     backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(${visaBg})`,
                     backgroundSize: 'cover',
@@ -281,14 +289,18 @@ const VisaSearch = () => {
                             >
                                 <div className="aspect-[3/4] rounded-2xl overflow-hidden relative mb-3 shadow-sm group-hover:shadow-xl transition-all duration-500">
                                     <img
-                                        src={dest.card_image || "/placeholder.jpg"}
+                                        src={getImageUrl(dest.card_image) || "/placeholder.jpg"}
                                         alt={dest.name}
                                         className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
                                     <div className="absolute bottom-4 left-4 right-4">
                                         <h3 className="text-white font-bold text-sm tracking-wide">{dest.name}</h3>
-                                        <p className="text-white/70 text-[10px] uppercase font-black tracking-widest">{dest.country}</p>
+                                        <p className="text-white/70 text-[10px] uppercase font-black tracking-widest">
+                                            {dest.region && dest.country
+                                                ? `${dest.region} · ${dest.country}`
+                                                : dest.region || dest.country}
+                                        </p>
                                     </div>
                                 </div>
                             </div>

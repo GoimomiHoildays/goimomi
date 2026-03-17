@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { Search, Eye, Trash2, Mail, Phone, Anchor } from "lucide-react";
+import api from "../../api";
+import { Search, Eye, Trash2, Mail, Phone, Anchor, Edit, Save, X } from "lucide-react";
 import AdminSidebar from "../../components/admin/AdminSidebar";
 import AdminTopbar from "../../components/admin/AdminTopbar";
 
@@ -11,8 +11,47 @@ const CruiseEnquiryManage = () => {
     const [error, setError] = useState("");
     const [selectedEnquiry, setSelectedEnquiry] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
+    const [isEditing, setIsEditing] = useState(false);
+    const [editForm, setEditForm] = useState({});
+    const [isUpdating, setIsUpdating] = useState(false);
 
     const API_BASE_URL = "/api";
+
+    const handleEditEnquiry = () => {
+        setIsEditing(true);
+        setEditForm({ ...selectedEnquiry });
+    };
+
+    const handleCancelEdit = () => {
+        setIsEditing(false);
+        setEditForm({});
+    };
+
+    const handleEditChange = (e) => {
+        setEditForm({ ...editForm, [e.target.name]: e.target.value });
+    };
+
+    const handleUpdate = async () => {
+        try {
+            setIsUpdating(true);
+            await api.patch(`${API_BASE_URL}/enquiry-form/${selectedEnquiry.id}/`, editForm);
+            const updated = { ...selectedEnquiry, ...editForm };
+            setSelectedEnquiry(updated);
+            setFilteredEnquiries(filteredEnquiries.map(e => e.id === updated.id ? updated : e));
+            setEnquiries(enquiries.map(e => e.id === updated.id ? updated : e));
+            setIsEditing(false);
+        } catch (err) {
+            console.error(err);
+            alert("Failed to update enquiry.");
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
+    const handleCloseModal = () => {
+        setSelectedEnquiry(null);
+        setIsEditing(false);
+    };
 
     useEffect(() => {
         fetchEnquiries();
@@ -21,7 +60,7 @@ const CruiseEnquiryManage = () => {
     const fetchEnquiries = async () => {
         try {
             setLoading(true);
-            const response = await axios.get(`${API_BASE_URL}/enquiry-form/`);
+            const response = await api.get(`${API_BASE_URL}/enquiry-form/`);
             // Filter for Cruise enquiries
             const cruiseEnquiries = response.data.filter(e => e.enquiry_type === "Cruise");
             setEnquiries(cruiseEnquiries);
@@ -49,7 +88,7 @@ const CruiseEnquiryManage = () => {
         if (window.confirm("Are you sure you want to delete this enquiry?")) {
             try {
                 setLoading(true);
-                await axios.delete(`${API_BASE_URL}/enquiry-form/${id}/`);
+                await api.delete(`${API_BASE_URL}/enquiry-form/${id}/`);
                 fetchEnquiries();
             } catch (err) {
                 console.error("Error deleting enquiry:", err);
@@ -194,86 +233,123 @@ const CruiseEnquiryManage = () => {
                             </div>
                         </div>
                     )}
+                </div>
+            </div>
 
-                    {/* Enquiry Detail Modal */}
-                    {selectedEnquiry && (
-                        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                            <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in zoom-in duration-200">
-                                <div className="bg-blue-600 p-6 text-white flex justify-between items-center">
-                                    <h2 className="text-xl font-bold flex items-center gap-2">
-                                        <Anchor size={20} /> Cruise Enquiry Details
-                                    </h2>
-                                    <button
-                                        onClick={() => setSelectedEnquiry(null)}
-                                        className="text-white/80 hover:text-white transition-colors text-2xl"
-                                    >
-                                        ×
-                                    </button>
+            {/* Enquiry Detail Modal */}
+            {selectedEnquiry && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[9999] p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="p-5 border-b border-gray-100 flex justify-between items-start bg-white sticky top-0 z-10 w-full overflow-hidden">
+                            <div className="flex flex-col flex-1 pl-2">
+                                {isEditing ? (
+                                    <input 
+                                        name="name" 
+                                        value={editForm.name || ""} 
+                                        onChange={handleEditChange} 
+                                        className="text-lg font-black text-gray-900 border border-gray-300 rounded px-2 py-1 focus:ring-[#14532d] outline-none max-w-[200px] mb-1" 
+                                    />
+                                ) : (
+                                    <h2 className="text-lg font-black text-gray-900 leading-tight truncate">{selectedEnquiry.name}</h2>
+                                )}
+                                <div className="flex items-center gap-1.5 text-[#14532d] font-bold text-[10px] mt-0.5">
+                                    <Anchor size={12} className="text-sky-600" />
+                                    <span>Cruise Enquiry</span>
                                 </div>
-
-                                <div className="p-8 space-y-6">
-                                    <div className="grid grid-cols-2 gap-6">
-                                        <div className="space-y-1">
-                                            <p className="text-xs font-bold text-gray-400 uppercase">Customer Name</p>
-                                            <p className="font-semibold text-gray-900">{selectedEnquiry.name}</p>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <p className="text-xs font-bold text-gray-400 uppercase">Desired Port/Dest</p>
-                                            <p className="font-semibold text-blue-600">
-                                                {selectedEnquiry.destination}
-                                            </p>
-                                        </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-2 mt-1 -ml-2 shrink-0">
+                                {!isEditing ? (
+                                    <button onClick={handleEditEnquiry} className="flex items-center gap-1 bg-green-50 text-[#14532d] px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-100 transition-colors">
+                                        <Edit size={14} /> Edit
+                                    </button>
+                                ) : (
+                                    <div className="flex gap-2">
+                                        <button onClick={handleCancelEdit} className="bg-gray-100 text-gray-600 px-2 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-200">
+                                            Cancel
+                                        </button>
+                                        <button onClick={handleUpdate} disabled={isUpdating} className="flex items-center gap-1 bg-[#14532d] text-white px-2 py-1.5 rounded-lg text-xs font-bold hover:bg-[#0f4a24]">
+                                            <Save size={14} /> {isUpdating ? "..." : "Save"}
+                                        </button>
                                     </div>
+                                )}
+                            </div>
+                            
+                            <button
+                                onClick={handleCloseModal}
+                                className="absolute right-5 top-5 text-gray-400 hover:text-gray-600 transition-colors p-1.5 hover:bg-gray-50 rounded-full text-2xl leading-none"
+                            >
+                                ×
+                            </button>
+                        </div>
 
-                                    <div className="space-y-1">
-                                        <p className="text-xs font-bold text-gray-400 uppercase">Contact Details</p>
-                                        <div className="space-y-2 mt-2">
-                                            <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                                <Phone size={18} className="text-blue-600" />
-                                                <span className="font-medium">{selectedEnquiry.phone}</span>
+                        <div className="overflow-y-auto max-h-[calc(90vh-140px)]">
+                            <div className="p-5 space-y-4">
+                                <div className="space-y-1.5">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Customer Details</p>
+                                    <div className="grid grid-cols-1 gap-1.5">
+                                        <div className="flex items-center gap-2.5 bg-gray-50/50 p-2 rounded-xl border border-gray-100 transition-colors text-sm">
+                                            <div className="bg-white p-1.5 rounded-lg shadow-sm">
+                                                <Phone size={14} className="text-[#14532d]" />
                                             </div>
-                                            {selectedEnquiry.email && (
-                                                <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
-                                                    <Mail size={18} className="text-blue-600" />
-                                                    <span className="font-medium">{selectedEnquiry.email}</span>
+                                            <span className="font-bold text-gray-700 w-full flex-1">
+                                                {isEditing ? <input name="phone" value={editForm.phone || ""} onChange={handleEditChange} className="w-full border border-gray-300 rounded px-2 py-1 font-normal text-xs" /> : selectedEnquiry.phone}
+                                            </span>
+                                        </div>
+                                        {(selectedEnquiry.email || isEditing) && (
+                                            <div className="flex items-center gap-2.5 bg-gray-50/50 p-2 rounded-xl border border-gray-100 transition-colors text-sm">
+                                                <div className="bg-white p-1.5 rounded-lg shadow-sm">
+                                                    <Mail size={14} className="text-[#14532d]" />
                                                 </div>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-1">
-                                        <p className="text-xs font-bold text-gray-400 uppercase">Travel Details / Message</p>
-                                        <div className="mt-2 bg-gray-50 p-4 rounded-xl border border-gray-100 italic text-gray-700 min-h-[100px]">
-                                            {selectedEnquiry.purpose || "No specific details mentioned."}
-                                        </div>
-                                    </div>
-
-                                    <div className="pt-4 border-t border-gray-100 text-center">
-                                        <p className="text-xs text-gray-400">Enquiry received on {formatDate(selectedEnquiry.created_at)}</p>
+                                                <span className="font-bold text-gray-700 truncate w-full flex-1">
+                                                    {isEditing ? <input name="email" value={editForm.email || ""} onChange={handleEditChange} className="w-full border border-gray-300 rounded px-2 py-1 font-normal text-xs" /> : selectedEnquiry.email}
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
-                                <div className="p-6 bg-gray-50 flex gap-3">
-                                    <button
-                                        onClick={() => setSelectedEnquiry(null)}
-                                        className="flex-1 bg-white border border-gray-200 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-100 transition-colors"
-                                    >
-                                        Close
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            window.open(`https://wa.me/${selectedEnquiry.phone.replace(/[^0-9]/g, '')}`);
-                                        }}
-                                        className="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition-colors shadow-lg shadow-green-600/20"
-                                    >
-                                        WhatsApp
-                                    </button>
+                                <div className="space-y-1.5">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tour Details / Message</p>
+                                    <div className="bg-gray-50/50 p-3 rounded-xl border border-gray-100 text-gray-600 text-[13px] leading-relaxed min-h-[60px]">
+                                        {isEditing ? (
+                                            <textarea 
+                                                name="purpose" 
+                                                value={editForm.purpose || ""} 
+                                                onChange={handleEditChange} 
+                                                className="w-full text-xs border border-gray-300 rounded p-2 focus:ring-[#14532d] outline-none min-h-[80px]" 
+                                            />
+                                        ) : (
+                                            selectedEnquiry.purpose || "No specific details provided."
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="pt-1 text-center">
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Received on {formatDate(selectedEnquiry.created_at)}</p>
                                 </div>
                             </div>
                         </div>
-                    )}
+
+                        <div className="p-4 bg-gray-50 flex gap-2 border-t border-gray-100">
+                            <button
+                                onClick={handleCloseModal}
+                                className="flex-1 bg-white border border-gray-200 text-gray-700 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-100 transition-colors"
+                            >
+                                Close
+                            </button>
+                            <button
+                                onClick={() => {
+                                    window.open(`https://wa.me/${selectedEnquiry.phone.replace(/[^0-9]/g, '')}`);
+                                }}
+                                className="flex-1 bg-green-600 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-green-700 transition-colors shadow-lg shadow-green-600/20"
+                            >
+                                WhatsApp
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };

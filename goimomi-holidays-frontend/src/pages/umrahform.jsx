@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import api from "../api";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import SuccessModal from "../components/SuccessModal";
@@ -13,7 +13,13 @@ const UmrahForm = ({ isOpen, onClose, packageType }) => {
     { cityName: "Madinah", nights: 2 }
   ]);
   const [startCity, setStartCity] = useState("");
-  const [travelDate, setTravelDate] = useState("");
+  const getTomorrowDate = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+  };
+
+  const [travelDate, setTravelDate] = useState(getTomorrowDate());
   const [nationality, setNationality] = useState("Indian");
 
   const [rooms, setRooms] = useState(1);
@@ -46,15 +52,15 @@ const UmrahForm = ({ isOpen, onClose, packageType }) => {
   // Fetch Data
   React.useEffect(() => {
     if (isOpen) {
-      axios.get("/api/nationalities/")
+      api.get("/api/nationalities/")
         .then(res => setNationalitiesList(res.data))
         .catch(err => console.error("Error fetching nationalities:", err));
 
-      axios.get("/api/starting-cities/")
+      api.get("/api/starting-cities/")
         .then(res => setStartingCitiesList(res.data))
         .catch(err => console.error("Error fetching starting cities:", err));
 
-      axios.get("/api/umrah-destinations/")
+      api.get("/api/umrah-destinations/")
         .then(res => setUmrahDestinationsList(res.data))
         .catch(err => console.error("Error fetching umrah destinations:", err));
     }
@@ -229,7 +235,7 @@ const UmrahForm = ({ isOpen, onClose, packageType }) => {
     };
 
     try {
-      const response = await axios.post(
+      const response = await api.post(
         '/api/umrah-form/',
         payload,
         {
@@ -634,6 +640,7 @@ const UmrahForm = ({ isOpen, onClose, packageType }) => {
                 <input
                   type="text"
                   className="border rounded px-3 py-1.5 w-full mt-1 text-sm"
+                  placeholder="Budget (Ex: ₹30,000)"
                   value={budget}
                   onChange={(e) => setBudget(e.target.value)}
                 />
