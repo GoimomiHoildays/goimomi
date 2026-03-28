@@ -70,7 +70,16 @@ class Enquiry(models.Model):
     phone = models.CharField(max_length=20)
     destination = models.CharField(max_length=200, blank=True, null=True)
     purpose = models.TextField(blank=True, null=True)
-    enquiry_type = models.CharField(max_length=50, default="General") # General, Cab, Cruise
+    enquiry_type = models.CharField(
+        max_length=50, 
+        choices=[
+            ('General', 'General'), 
+            ('Cab', 'Cab'), 
+            ('Cruise', 'Cruise'), 
+            ('Business Travel', 'Business Travel')
+        ], 
+        default="General"
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -81,7 +90,7 @@ class HolidayPackage(models.Model):
     
     category = models.CharField(
         max_length=20,
-        choices=[('Domestic', 'Domestic'), ('International', 'International'), ('Umrah', 'Umrah')],
+        choices=[('Domestic', 'Domestic'), ('International', 'International'), ('Umrah', 'Umrah'), ('Business Travel', 'Business Travel')],
         default='Domestic'
     )
     
@@ -691,3 +700,19 @@ class CabAdditionalDocument(models.Model):
 
     def __str__(self):
         return f"Doc for {self.booking.first_name} - {self.document_name or 'unnamed'}"
+
+class CantonEnquiry(models.Model):
+    full_name = models.CharField(max_length=150)
+    whatsapp_number = models.CharField(max_length=20)
+    business_name = models.CharField(max_length=255)
+    selected_phase = models.CharField(max_length=150)
+    payment_status = models.CharField(
+        max_length=20,
+        choices=[('Pending', 'Pending'), ('Success', 'Success'), ('Failed', 'Failed')],
+        default='Pending'
+    )
+    transaction_id = models.CharField(max_length=100, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.full_name} - {self.selected_phase}"

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom'
 
 import Navbar from './components/Navbar.jsx'
 import Footer from './components/Footer.jsx'
@@ -22,14 +22,17 @@ import VisaSearch from './pages/VisaSearch.jsx'
 import VisaResults from './pages/VisaResults.jsx'
 import VisaApplication from './pages/VisaApplication.jsx'
 import Europeantours from './pages/Europeantours.jsx'
-
 import Hotel from './pages/hotel.jsx'
 import PrivacyPolicy from './pages/PrivacyPolicy.jsx'
 import TermsConditions from './pages/TermsConditions.jsx'
 import CancellationPolicy from './pages/CancellationPolicy.jsx'
 import HolidayDetails from "./pages/HolidayDetails.jsx";
+import Canton from "./pages/Canton.jsx";
+import HolidayHome from "./pages/holidayhome.jsx";
+
 
 import PackageEnquiryPage from "./pages/PackageEnquiryPage.jsx";
+import BusinessHome from "./pages/businesshome.jsx";
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 import DestinationAdd from "./pages/admin/DestinationAdd.jsx";
 import DestinationManage from "./pages/admin/DestinationManage.jsx";
@@ -125,12 +128,16 @@ const App = () => {
 
       <main className={`flex-1 ${isAdminPath ? 'flex flex-col min-h-0 overflow-hidden' : ''}`}>
         <Routes>
+          <Route path="/canton" element={<Canton />} />
           <Route path="/" element={<Home />} />
           <Route path="/test" element={<div className="p-20 text-4xl font-black text-green-600">React is Working!</div>} />
           <Route path="/aboutus" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
+          <Route path="/contactus" element={<Contact />} />
           <Route path="/contact/success" element={<ContactSuccess />} />
+          <Route path="/holidayhome" element={<HolidayHome />} />
+          <Route path="/businesshome" element={<BusinessHome />} />
           <Route path="/holidays" element={<Holidays />} />
+
           <Route path="/customizedHolidays" element={<CustomizedHolidays />} />
           <Route
             path="/umrah-package"
@@ -157,6 +164,7 @@ const App = () => {
           <Route path="/visa/results" element={<VisaResults />} />
           <Route path="/visa/apply/:id" element={<VisaApplication />} />
           <Route path="/Europeantours" element={<Europeantours />} />
+
 
 
           <Route path="/admin-login" element={<AdminLogin />} />
